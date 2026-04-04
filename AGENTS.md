@@ -141,6 +141,78 @@ kubectl create secret generic nanobot-config \
 - Stores Matrix sync state (`matrix-store`), E2EE keys, workspace data
 - Uses local-path instead of NFS because matrix-nio's SQLite E2EE store hangs on NFS file locking
 
+## SSH access to cluster nodes
+
+The bot can SSH *out* to nodes (`openssh-client` is installed). It cannot be reached via SSH — no server is running.
+
+SSH config and keys are stored on the PVC at `/root/.nanobot/ssh/`, which is symlinked to `~/.ssh` inside the container. This means keys and `known_hosts` survive pod restarts.
+
+### Adding an SSH key
+
+1. Generate a key on `hp-elitedesk` (or use an existing one):
+
+   ```bash
+   ssh-keygen -t ed25519 -C "nanobot@cluster" -f /tmp/nanobot_ed25519 -N ""
+   ```
+
+2. Copy the public key to each node you want the bot to reach:
+
+   ```bash
+   ssh-copy-id -i /tmp/nanobot_ed25519.pub spof@hp-elitedesk   # 192.168.178.99
+   ssh-copy-id -i /tmp/nanobot_ed25519.pub spof@c-nuc7          # 192.168.179.5
+   ssh-copy-id -i /tmp/nanobot_ed25519.pub spof@rpi3             # 192.168.178.37
+   ```
+
+3. Copy the private key into the pod (it will be persisted on the PVC):
+
+   ```bash
+   kubectl cp /tmp/nanobot_ed25519 nanobot/$(kubectl get pod -n nanobot -l app=nanobot -o jsonpath='{.items[0].metadata.name}'):/root/.nanobot/ssh/id_ed25519
+   kubectl exec -n nanobot deployment/nanobot -- chmod 600 /root/.nanobot/ssh/id_ed25519
+   ```
+
+4. Write an SSH config so the bot can refer to nodes by name:
+
+   ```bash
+   kubectl exec -n nanobot deployment/nanobot -- sh -c 'cat > /root/.nanobot/ssh/config << EOF
+   Host hp-elitedesk
+     HostName 192.168.178.99
+     User spof
+     IdentityFile ~/.ssh/id_ed25519
+     StrictHostKeyChecking no
+
+   Host c-nuc7
+     HostName 192.168.179.5
+     User spof
+     IdentityFile ~/.ssh/id_ed25519
+     StrictHostKeyChecking no
+
+   Host rpi3
+     HostName 192.168.178.37
+     User spof
+     IdentityFile ~/.ssh/id_ed25519
+     StrictHostKeyChecking no
+   EOF
+   chmod 600 /root/.nanobot/ssh/config'
+   ```
+
+5. Test from inside the pod:
+
+   ```bash
+   kubectl exec -n nanobot deployment/nanobot -- ssh hp-elitedesk hostname
+   ```
+
+### Clean up the temp key from the host
+
+```bash
+rm /tmp/nanobot_ed25519 /tmp/nanobot_ed25519.pub
+```
+
+### Notes
+
+- `StrictHostKeyChecking no` is used here for convenience since these are trusted internal nodes. Once the bot has connected once, `known_hosts` will be populated and you can tighten this to `accept-new`.
+- The private key lives on the PVC — it is **not** in git or in any Secret. If the PVC is deleted the key is lost and must be re-provisioned.
+- The bot runs as `root` inside the container, so `~/.ssh` resolves to `/root/.ssh` → `/root/.nanobot/ssh`.
+
 ## Notes
 
 - The `application.yaml` is not synced by ArgoCD itself — it must be applied manually or via an app-of-apps pattern.
