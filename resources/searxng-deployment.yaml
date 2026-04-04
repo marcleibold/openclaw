@@ -25,6 +25,8 @@ spec:
           env:
             - name: SEARXNG_SECRET
               value: "13b6ecbfb909a720e36fe0ae8a4764155171113afaf00028fe3b6985fc6590c3"
+            - name: PORT
+              value: "8080"
           volumeMounts:
             - name: config
               mountPath: /etc/searxng/settings.yml
