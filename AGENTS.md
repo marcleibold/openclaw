@@ -22,7 +22,7 @@ nanobot/
     deployment.yaml       # Kubernetes Deployment (gateway mode)
     service.yaml          # ClusterIP Service (port 18790)
     pvc.yaml              # PersistentVolumeClaim for runtime data
-    secret.yaml           # SealedSecret for config.json (to be created)
+    secret.yaml           # SealedSecret for config.json
 ```
 
 ## Key documentation
@@ -85,14 +85,14 @@ This config is stored as a SealedSecret (`nanobot-config`) and mounted into the 
 ```json
 {
   "providers": {
-    "openrouter": {
-      "apiKey": "<OPENROUTER_API_KEY>"
+    "minimax": {
+      "apiKey": "<MINIMAX_API_KEY>"
     }
   },
   "agents": {
     "defaults": {
-      "model": "anthropic/claude-sonnet-4-6",
-      "provider": "openrouter"
+      "model": "minimax-m2.7",
+      "provider": "minimax"
     }
   },
   "channels": {
@@ -145,5 +145,5 @@ kubectl create secret generic nanobot-config \
 ## Notes
 
 - The `application.yaml` is not synced by ArgoCD itself — it must be applied manually or via an app-of-apps pattern.
-- The Matrix account (`@nanobot:matrix.leibold.tech`) must be created on the Synapse homeserver before deployment.
+- The Matrix account (`@nanobot:matrix.leibold.tech`) is registered on Synapse with device ID `NANOBOT01`.
 - E2EE requires a stable `deviceId` and persistent `matrix-store` directory — never delete the PVC without re-verifying E2EE sessions.

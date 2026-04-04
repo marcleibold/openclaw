@@ -4,10 +4,10 @@ Open tasks and technical debt, roughly ordered by priority.
 
 ## Blockers (must do before first deployment)
 
-- [ ] Create Matrix account `@nanobot:matrix.leibold.tech` on Synapse
-- [ ] Obtain Matrix access token and device ID for the nanobot account
-- [ ] Obtain an LLM provider API key (OpenRouter recommended)
-- [ ] Create `config.json` with real credentials and seal it as `resources/secret.yaml`
+- [x] Create Matrix account `@nanobot:matrix.leibold.tech` on Synapse
+- [x] Obtain Matrix access token and device ID for the nanobot account
+- [x] Obtain a MiniMax API key and re-seal `resources/secret.yaml`
+- [x] Create `config.json` and seal it as `resources/secret.yaml`
 - [ ] Trigger first Docker image build (push Dockerfile to master, or manual dispatch)
 - [ ] Verify GHCR image pull works from the cluster (may need imagePullSecret for private packages)
 

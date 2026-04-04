@@ -132,3 +132,25 @@ This document captures the key design decisions, trade-offs, and alternatives co
 - (+) Free for private repos
 - (+) SHA-tagged images for traceability
 - (-) Cluster must be able to pull from GHCR (may need imagePullSecret for private packages)
+
+## D9: MiniMax direct provider (not OpenRouter)
+
+**Decision**: Use MiniMax as a direct LLM provider via NanoBot's built-in `minimax` provider, rather than routing through OpenRouter.
+
+**Context**: NanoBot natively supports MiniMax as a first-class provider (added in v0.1.4, 2026-02-11). It uses the `openai_compat` backend with `api.minimax.io/v1` as the default endpoint. The initial plan was to use OpenRouter as a gateway for multi-model flexibility, but MiniMax direct is simpler for a first deployment.
+
+**Alternatives considered**:
+
+1. **OpenRouter** — Provides access to 100+ models (Claude, GPT-4o, Gemini, etc.) through a single API key. Adds a middleman with extra latency and cost markup.
+2. **Both providers** — Configure MiniMax as primary and OpenRouter as secondary for model flexibility. Adds complexity for initial deployment.
+3. **Custom provider** — Use the generic `custom` provider to point at MiniMax's API. Unnecessary since MiniMax has dedicated support.
+
+**Trade-offs**:
+
+- (+) Lower latency — direct API calls, no intermediary
+- (+) Lower cost — no OpenRouter markup
+- (+) Simpler config — only one API key needed
+- (+) First-class support — NanoBot knows MiniMax model capabilities
+- (-) Limited to MiniMax models only (minimax-m2.7, etc.)
+- (-) No easy model switching without re-sealing the config
+- OpenRouter can be added later as a secondary provider if multi-model access is needed
