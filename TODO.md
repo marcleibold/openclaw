@@ -21,11 +21,11 @@ Open tasks and technical debt, roughly ordered by priority.
 ## Improvements
 
 - [ ] Pin Docker image to SHA tag instead of `latest` in deployment.yaml
-- [ ] Add `nodeSelector` to exclude rpi3 (arm) if image is amd64-only
 - [ ] Consider adding `podDisruptionBudget` (probably overkill for single replica)
 - [ ] Add Prometheus metrics scraping if nanobot exposes metrics
-- [ ] Add network policy to restrict egress to only matrix.leibold.tech and LLM provider domains
+- [ ] Add network policy to restrict egress to only matrix.leibold.tech and api.minimax.io
 - [ ] Add a deeper liveness check (e.g., verify Matrix sync recency) once upstream adds HTTP health endpoint
+- [ ] Free up CPU on hp-elitedesk so nanobot can have reasonable resource requests (currently 1m due to overcommit)
 
 ## Technical debt
 

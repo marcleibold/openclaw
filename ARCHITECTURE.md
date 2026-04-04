@@ -26,10 +26,10 @@ The primary interaction channel is Matrix (Element), connecting to the self-host
                     │ (nanobot ns) │
                     └──────┬──────┘
                            │ HTTPS (provider API)
-                    ┌──────▼──────┐
-                    │ LLM Provider │
-                    │ (OpenRouter) │
-                    └─────────────┘
+                     ┌──────▼──────┐
+                     │ LLM Provider │
+                     │  (MiniMax)   │
+                     └─────────────┘
 ```
 
 ### Component roles
@@ -39,7 +39,7 @@ The primary interaction channel is Matrix (Element), connecting to the self-host
 | **Element** | Matrix chat client (desktop/mobile) | User device |
 | **Synapse** | Matrix homeserver, message routing, E2EE | `matrix` namespace, `matrix.leibold.tech` |
 | **NanoBot** | AI assistant gateway, receives Matrix messages, calls LLM, responds | `nanobot` namespace |
-| **LLM Provider** | Language model inference (Claude, GPT, etc.) | External (OpenRouter, Anthropic, etc.) |
+| **LLM Provider** | Language model inference (MiniMax M2.7) | External (`api.minimax.io`) |
 
 ## Cluster topology
 
@@ -50,7 +50,7 @@ k3s cluster (3 nodes)
 └── rpi3          (worker, 192.168.178.37)
 ```
 
-NanoBot does not require GPU or specific hardware — it runs on any amd64 node. The rpi3 (arm) node is excluded by default since the Docker image is built for amd64 only.
+NanoBot runs on `hp-elitedesk` (amd64, control-plane node) via `nodeSelector`. It does not require GPU or specific hardware beyond amd64. The rpi3 (arm) node is excluded by default since the Docker image is built for amd64 only.
 
 ## Kubernetes resources
 
@@ -58,16 +58,19 @@ NanoBot does not require GPU or specific hardware — it runs on any amd64 node.
 
 - Single replica, `Recreate` strategy (no concurrent sessions)
 - Runs `nanobot gateway` as the container entrypoint
+- Pinned to `hp-elitedesk` via `nodeSelector`
 - Mounts `config.json` from a SealedSecret as a read-only file
 - Mounts a PVC for persistent runtime data (Matrix sync state, E2EE keys)
 - Exec-based startup and liveness probes (process health check)
+- Resource requests: 1m CPU / 32Mi memory (minimal, to fit on overcommitted node)
 - Resource limits: 1 CPU / 1Gi memory
 - No HTTP port exposed — the gateway does not start a web server
 
 ### PersistentVolumeClaim (`resources/pvc.yaml`)
 
-- 1Gi on `ssd` storageClass
+- 1Gi on `local-path` storageClass (pinned to `hp-elitedesk`)
 - Stores: Matrix sync tokens, E2EE device keys, workspace data, memory database
+- Uses `local-path` instead of `ssd` (NFS-backed) because matrix-nio's SQLite E2EE store hangs on NFS file locking
 
 ### SealedSecret (`resources/secret.yaml`)
 
@@ -133,7 +136,7 @@ NanoBot writes runtime state to `/root/.nanobot/`:
 | Direction | From | To | Protocol | Purpose |
 |---|---|---|---|---|
 | Outbound | NanoBot | `matrix.leibold.tech` | HTTPS | Matrix client API |
-| Outbound | NanoBot | `openrouter.ai` (or other) | HTTPS | LLM inference |
+| Outbound | NanoBot | `api.minimax.io` | HTTPS | LLM inference |
 
 NanoBot acts as a Matrix client — all communication is outbound-initiated. No ingress or inbound traffic is required.
 

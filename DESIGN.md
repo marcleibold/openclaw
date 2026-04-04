@@ -125,7 +125,7 @@ This document captures the key design decisions, trade-offs, and alternatives co
 
 **Decision**: Use GitHub Actions with GHCR for building and storing Docker images.
 
-**Context**: The repo is on GitHub (private, `marcleibold/nanobot`). GHCR is free for private repos with GitHub Actions.
+**Context**: The repo is on GitHub (`marcleibold/nanobot`). GHCR is free with GitHub Actions.
 
 **Alternatives considered**:
 
@@ -136,9 +136,9 @@ This document captures the key design decisions, trade-offs, and alternatives co
 **Trade-offs**:
 
 - (+) Automated, triggered on Dockerfile changes
-- (+) Free for private repos
+- (+) Free with GitHub Actions
 - (+) SHA-tagged images for traceability
-- (-) Cluster must be able to pull from GHCR (may need imagePullSecret for private packages)
+- (-) Cluster must be able to pull from GHCR (public packages don't need imagePullSecret)
 
 ## D9: MiniMax direct provider (not OpenRouter)
 
@@ -161,3 +161,44 @@ This document captures the key design decisions, trade-offs, and alternatives co
 - (-) Limited to MiniMax models only (minimax-m2.7, etc.)
 - (-) No easy model switching without re-sealing the config
 - OpenRouter can be added later as a secondary provider if multi-model access is needed
+
+## D10: local-path storageClass (not ssd/NFS)
+
+**Decision**: Use `local-path` storageClass with node pinning instead of the cluster's `ssd` storageClass.
+
+**Context**: The `ssd` storageClass in this cluster is actually NFS-backed (`nfs-provisioner`). NanoBot's Matrix E2EE support uses `matrix-nio`, which stores encryption keys in a SQLite database. SQLite relies on file-level locking (`fcntl`), which does not work reliably over NFS.
+
+**Discovery**: The initial deployment used `ssd` storageClass. The pod would start, begin Matrix sync, then hang in uninterruptible disk sleep (D state) when matrix-nio attempted to open its SQLite E2EE key store over NFS. The process could not be killed (SIGKILL had no effect) and the pod had to wait for the NFS timeout.
+
+**Alternatives considered**:
+
+1. **ssd (NFS-backed)** — Default storageClass, works for most workloads. Causes D-state hang with SQLite.
+2. **EmptyDir** — No persistence across restarts. E2EE keys would be lost, requiring re-verification.
+3. **HostPath** — Equivalent to local-path but less managed. No reclaim policy.
+
+**Trade-offs**:
+
+- (+) SQLite works correctly on local filesystem
+- (+) Lower latency for database operations
+- (-) Data is tied to `hp-elitedesk` node — pod cannot float between nodes
+- (-) No redundancy — data is lost if the node's disk fails
+- The `nodeSelector` on the deployment ensures the pod always lands on the same node as the PVC
+
+## D11: Minimal resource requests (1m CPU / 32Mi memory)
+
+**Decision**: Set resource requests to the minimum necessary (1m CPU, 32Mi memory) while keeping limits at 1 CPU / 1Gi.
+
+**Context**: The `hp-elitedesk` node has 4000m total CPU with 3995m already requested by other workloads. Even 10m CPU request causes `Insufficient cpu` scheduling failures. NanoBot is bursty — mostly idle waiting for Matrix messages, then briefly active during LLM calls.
+
+**Alternatives considered**:
+
+1. **No requests (limits only)** — Kubernetes sets requests = limits when requests are omitted, making it worse (1 full CPU request).
+2. **BestEffort (no requests or limits)** — First to be evicted under memory pressure. Too risky for E2EE state.
+3. **Move to another node** — `c-nuc7` has capacity but the PVC is `local-path` on `hp-elitedesk`.
+
+**Trade-offs**:
+
+- (+) Pod can schedule despite the overcommitted node
+- (+) Limits still cap resource usage to prevent runaway consumption
+- (-) Under pressure, kubelet may throttle or OOM-kill this pod before pods with higher requests
+- (-) Relies on the node having actual idle capacity despite being "99% requested"
