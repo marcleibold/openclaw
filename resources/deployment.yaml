@@ -17,6 +17,8 @@ spec:
       labels:
         app: nanobot
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: hp-elitedesk
       containers:
         - name: nanobot
           image: ghcr.io/marcleibold/nanobot:latest # TODO: pin to a specific tag after first build

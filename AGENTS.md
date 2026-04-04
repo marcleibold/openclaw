@@ -137,9 +137,9 @@ kubectl create secret generic nanobot-config \
 
 ## Persistence
 
-- **PVC**: `nanobot-data` (1Gi, `ssd` storageClass)
+- **PVC**: `nanobot-data` (1Gi, `local-path` storageClass, pinned to `hp-elitedesk`)
 - Stores Matrix sync state (`matrix-store`), E2EE keys, workspace data
-- The config secret is mounted read-only on top via subPath
+- Uses local-path instead of NFS because matrix-nio's SQLite E2EE store hangs on NFS file locking
 
 ## Notes
 
