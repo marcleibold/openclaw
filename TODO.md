@@ -11,7 +11,20 @@ Open tasks and technical debt, roughly ordered by priority.
 - [x] Trigger first Docker image build (push Dockerfile to master, or manual dispatch)
 - [x] Verify GHCR image pull works from the cluster (repo and package set to public)
 
-## Post-deployment validation
+## SSH setup (manual, one-time)
+
+Steps to provision SSH access so the bot can manage cluster nodes.
+See `AGENTS.md` for the full guide with exact commands.
+
+- [ ] Generate an SSH key pair on `hp-elitedesk`: `ssh-keygen -t ed25519 -C "nanobot@cluster" -f /tmp/nanobot_ed25519 -N ""`
+- [ ] Copy public key to all 3 nodes (`hp-elitedesk`, `c-nuc7`, `rpi3`) via `ssh-copy-id`
+- [ ] Copy private key into the running pod: `kubectl cp /tmp/nanobot_ed25519 nanobot/<pod>:/root/.nanobot/ssh/id_ed25519`
+- [ ] Set permissions: `kubectl exec -n nanobot deployment/nanobot -- chmod 600 /root/.nanobot/ssh/id_ed25519`
+- [ ] Write `~/.ssh/config` inside the pod with named host entries for all 3 nodes
+- [ ] Test: `kubectl exec -n nanobot deployment/nanobot -- ssh hp-elitedesk hostname`
+- [ ] Remove temp key from host: `rm /tmp/nanobot_ed25519 /tmp/nanobot_ed25519.pub`
+
+
 
 - [ ] Verify E2EE works end-to-end (send encrypted message, confirm nanobot decrypts and responds)
 - [ ] Verify PVC data persists across pod restarts (kill pod, check Matrix sync resumes)
