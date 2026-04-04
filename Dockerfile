@@ -15,6 +15,11 @@ RUN apt-get update && \
         jq \
         rsync \
         openssh-client \
+        tesseract-ocr \
+        tesseract-ocr-eng \
+        imagemagick \
+        libimage-exiftool-perl \
+        poppler-utils \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,8 +36,8 @@ ARG NANOBOT_VERSION=v0.1.4.post6
 RUN git clone --depth 1 --branch ${NANOBOT_VERSION} https://github.com/HKUDS/NanoBot.git . || \
     git clone --depth 1 https://github.com/HKUDS/NanoBot.git .
 
-# Install Python dependencies with Matrix (E2EE) support
-RUN uv pip install --system --no-cache ".[matrix]"
+# Install Python dependencies with Matrix (E2EE) support and image processing
+RUN uv pip install --system --no-cache ".[matrix]" Pillow
 
 # Create config directory
 RUN mkdir -p /root/.nanobot
