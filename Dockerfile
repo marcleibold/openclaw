@@ -29,6 +29,10 @@ RUN curl -fsSL https://github.com/cli/cli/releases/download/v2.89.0/gh_2.89.0_li
     && mv /tmp/gh_2.89.0_linux_amd64/bin/gh /usr/local/bin/gh \
     && rm -rf /tmp/gh_2.89.0_linux_amd64
 
+# Install kubectl for Kubernetes access
+RUN curl -fsSL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && chmod +x /usr/local/bin/kubectl
+
 WORKDIR /app
 
 # Clone upstream nanobot at a pinned version

@@ -46,6 +46,10 @@ spec:
               readOnly: true
             - name: data
               mountPath: /root/.nanobot
+            - name: security-patch
+              mountPath: /usr/local/lib/python3.12/site-packages/nanobot/security/network.py
+              subPath: network.py
+              readOnly: true
           resources:
             requests:
               cpu: 1m
@@ -63,4 +67,7 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: nanobot-data
+        - name: security-patch
+          configMap:
+            name: nanobot-security-patch
       restartPolicy: Always
