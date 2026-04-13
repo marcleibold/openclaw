@@ -21,7 +21,7 @@ data:
       },
       "agents": {
         "defaults": {
-          "model": { "provider": "minimax", "model": "MiniMax-M2.7" },
+          "model": { "primary": "minimax/MiniMax-M2.7" },
           "workspace": "~/.openclaw/workspace"
         },
         "list": [
