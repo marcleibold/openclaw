@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-config
+  namespace: openclaw
+  labels:
+    app: openclaw
+data:
+  openclaw.json: |
+    {
+      "gateway": {
+        "mode": "local",
+        "bind": "loopback",
+        "port": 18789,
+        "auth": {
+          "mode": "token"
+        },
+        "controlUi": {
+          "enabled": true
+        }
+      },
+      "agents": {
+        "defaults": {
+          "workspace": "~/.openclaw/workspace"
+        },
+        "list": [
+          {
+            "id": "default",
+            "name": "OpenClaw Assistant",
+            "workspace": "~/.openclaw/workspace"
+          }
+        ]
+      },
+      "cron": { "enabled": false }
+    }
+  AGENTS.md: |
+    # OpenClaw Assistant
+
+    You are a helpful AI assistant running in Kubernetes. Your default model is MiniMax-M2.7.
+
+    ## Setup
+
+    This is a personal AI assistant deployed on a self-hosted k3s cluster. It connects to Matrix
+    for chat and uses MiniMax M2.7 as the primary reasoning model.
+
+    ## Matrix channel
+
+    Configure the Matrix channel in `channels.matrix` with your homeserver, userId, and accessToken.
+    E2EE is enabled by default. On first login, complete device verification in your Element client.
+
+    ## Commands
+
+    - `/help` - Show available commands
+    - `/status` - Show agent status
+    - `/model` - Show current model
+    - `/exit` - End session

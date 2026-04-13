@@ -1,74 +1,138 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nanobot
-  namespace: nanobot
+  name: openclaw
+  namespace: openclaw
   labels:
-    app: nanobot
+    app: openclaw
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      app: nanobot
-  replicas: 1
+      app: openclaw
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: nanobot
+        app: openclaw
     spec:
-      serviceAccountName: nanobot
-      nodeSelector:
-        kubernetes.io/hostname: hp-elitedesk
-      containers:
-        - name: nanobot
-          image: ghcr.io/marcleibold/nanobot:latest # TODO: pin to a specific tag after first build
-          command: ["nanobot"]
-          args: ["gateway"]
-          env:
-            - name: TZ
-              value: "Europe/Berlin"
-          startupProbe:
-            exec:
-              command: ["python3", "-c", "import os, signal; os.kill(1, 0)"]
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            failureThreshold: 12
-          livenessProbe:
-            exec:
-              command: ["python3", "-c", "import os, signal; os.kill(1, 0)"]
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          volumeMounts:
-            - name: config
-              mountPath: /root/.nanobot/config.json
-              subPath: config.json
-              readOnly: true
-            - name: data
-              mountPath: /root/.nanobot
-            - name: security-patch
-              mountPath: /usr/local/lib/python3.12/site-packages/nanobot/security/network.py
-              subPath: network.py
-              readOnly: true
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: init-config
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+              mkdir -p /home/node/.openclaw/workspace
+              cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
           resources:
             requests:
-              cpu: 1m
               memory: 32Mi
+              cpu: 50m
             limits:
-              cpu: 1
-              memory: 1Gi
+              memory: 64Mi
+              cpu: 100m
+          volumeMounts:
+            - name: openclaw-home
+              mountPath: /home/node/.openclaw
+            - name: config
+              mountPath: /config
+      containers:
+        - name: gateway
+          image: ghcr.io/openclaw/openclaw:2026.4.12-slim
+          imagePullPolicy: IfNotPresent
+          command:
+            - node
+            - /app/dist/index.js
+            - gateway
+            - run
+          ports:
+            - name: gateway
+              containerPort: 18789
+              protocol: TCP
+          env:
+            - name: HOME
+              value: /home/node
+            - name: OPENCLAW_CONFIG_DIR
+              value: /home/node/.openclaw
+            - name: NODE_ENV
+              value: production
+            - name: OPENCLAW_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-secrets
+                  key: OPENCLAW_GATEWAY_TOKEN
+                  optional: true
+            - name: MINIMAX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-secrets
+                  key: MINIMAX_API_KEY
+                  optional: true
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-secrets
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 2Gi
+              cpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 18789
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 18789
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: openclaw-home
+              mountPath: /home/node/.openclaw
+            - name: tmp-volume
+              mountPath: /tmp
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       volumes:
-        - name: config
-          secret:
-            secretName: nanobot-config
-            items:
-              - key: config.json
-                path: config.json
-        - name: data
+        - name: openclaw-home
           persistentVolumeClaim:
-            claimName: nanobot-data
-        - name: security-patch
+            claimName: openclaw-home-pvc
+        - name: config
           configMap:
-            name: nanobot-security-patch
-      restartPolicy: Always
+            name: openclaw-config
+        - name: tmp-volume
+          emptyDir: {}
