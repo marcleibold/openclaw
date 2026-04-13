@@ -10,7 +10,7 @@ data:
     {
       "gateway": {
         "mode": "local",
-        "bind": "loopback",
+        "bind": "lan",
         "port": 18789,
         "auth": {
           "mode": "token"
@@ -21,6 +21,7 @@ data:
       },
       "agents": {
         "defaults": {
+          "model": { "provider": "minimax", "model": "MiniMax-M2.7" },
           "workspace": "~/.openclaw/workspace"
         },
         "list": [

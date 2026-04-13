@@ -2,6 +2,13 @@
 
 Personal AI assistant based on [OpenClaw](https://docs.openclaw.ai), running on Kubernetes.
 
+## Currently Deployed Versions
+
+| Component | Version | Image |
+|---|---|---|
+| OpenClaw | 2026.4.12-slim | `ghcr.io/openclaw/openclaw:2026.4.12-slim` |
+| Matrix (Synapse) | v1.127.1 | `matrixdotorg/synapse:v1.127.1` |
+
 ## Overview
 
 OpenClaw is a self-hosted gateway that connects chat channels (Matrix, Telegram, Discord, etc.) to AI agents. This repo deploys it on a personal k3s cluster with Matrix as the primary chat interface and MiniMax M2.7 as the reasoning model.

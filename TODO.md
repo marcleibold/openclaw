@@ -4,7 +4,7 @@ Open tasks and technical debt, roughly ordered by priority.
 
 ## Initial deployment
 
-- [ ] Create `openclaw` namespace and apply ArgoCD app: `kubectl apply -f application.yaml -n argo-cd`
+- [x] Create `openclaw` namespace and apply ArgoCD app: `kubectl apply -f application.yaml -n argo-cd`
 - [ ] Generate and seal `openclaw-secrets` Secret with your API keys
 - [ ] Configure Matrix channel in `openclaw.json` (add homeserver, accessToken)
 - [ ] Verify Control UI is accessible at http://localhost:18789 with gateway token
