@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repo defines the Kubernetes deployment configuration for a [NanoBot](https://github.com/HKUDS/NanoBot) instance running on a personal k3s cluster. NanoBot is an ultra-lightweight personal AI assistant that connects to LLM providers and exposes itself through chat platform integrations ("channels").
+This repo defines the Kubernetes deployment configuration for an [OpenClaw](https://docs.openclaw.ai) gateway running on a personal k3s cluster. OpenClaw is a self-hosted gateway that connects chat channels (including Matrix) to AI agents. OpenClaw natively supports MiniMax as a model provider.
 
 The primary interaction channel is Matrix (Element), connecting to the self-hosted Synapse homeserver at `matrix.leibold.tech`.
 
@@ -21,9 +21,9 @@ The primary interaction channel is Matrix (Element), connecting to the self-host
                     └──────┬──────┘
                            │ Matrix client API
                     ┌──────▼──────┐
-                    │   NanoBot    │◄──── config.json (SealedSecret)
-                    │  (gateway)   │
-                    │ (nanobot ns) │
+                    │   OpenClaw  │
+                    │  (gateway)  │
+                    │ (openclaw ns)│
                     └──────┬──────┘
                            │ HTTPS (provider API)
                      ┌──────▼──────┐
@@ -38,7 +38,7 @@ The primary interaction channel is Matrix (Element), connecting to the self-host
 |---|---|---|
 | **Element** | Matrix chat client (desktop/mobile) | User device |
 | **Synapse** | Matrix homeserver, message routing, E2EE | `matrix` namespace, `matrix.leibold.tech` |
-| **NanoBot** | AI assistant gateway, receives Matrix messages, calls LLM, responds | `nanobot` namespace |
+| **OpenClaw** | AI assistant gateway, receives Matrix messages, calls LLM, responds | `openclaw` namespace |
 | **LLM Provider** | Language model inference (MiniMax M2.7) | External (`api.minimax.io`) |
 
 ## Cluster topology
@@ -50,103 +50,90 @@ k3s cluster (3 nodes)
 └── rpi3          (worker, 192.168.178.37)
 ```
 
-NanoBot runs on `hp-elitedesk` (amd64, control-plane node) via `nodeSelector`. It does not require GPU or specific hardware beyond amd64. The rpi3 (arm) node is excluded by default since the Docker image is built for amd64 only.
+OpenClaw runs on any amd64 node. The Docker image is built for amd64 only, excluding `rpi3` (arm).
 
 ## Kubernetes resources
 
 ### Deployment (`resources/deployment.yaml`)
 
-- Single replica, `Recreate` strategy (no concurrent sessions)
-- Runs `nanobot gateway` as the container entrypoint
-- Pinned to `hp-elitedesk` via `nodeSelector`
-- Mounts `config.json` from a SealedSecret as a read-only file
-- Mounts a PVC for persistent runtime data (Matrix sync state, E2EE keys)
-- Exec-based startup and liveness probes (process health check)
-- Resource requests: 1m CPU / 32Mi memory (minimal, to fit on overcommitted node)
-- Resource limits: 1 CPU / 1Gi memory
-- No HTTP port exposed — the gateway does not start a web server
+- Single replica, `Recreate` strategy
+- Runs `node /app/dist/index.js gateway run` as the container entrypoint
+- Uses the pre-built `ghcr.io/openclaw/openclaw:2026.4.12-slim` image
+- ConfigMap-mounted `openclaw.json` for base configuration
+- PVC-mounted `/home/node/.openclaw/` for persistent runtime data
+- HTTP liveness probe (`GET /healthz`) and readiness probe (`GET /readyz`)
+- Resource requests: 512Mi memory / 250m CPU; limits: 2Gi memory / 1 CPU
+- Security: non-root user (1000), read-only root filesystem, `drop: ALL` capabilities
 
 ### PersistentVolumeClaim (`resources/pvc.yaml`)
 
-- 1Gi on `local-path` storageClass (pinned to `hp-elitedesk`)
-- Stores: Matrix sync tokens, E2EE device keys, workspace data, memory database
-- Uses `local-path` instead of `ssd` (NFS-backed) because matrix-nio's SQLite E2EE store hangs on NFS file locking
+- 10Gi on `local-path` storageClass
+- Stores: Matrix sync tokens, E2EE device keys, IndexedDB snapshots, session state, workspace data
+- Uses `local-path` (not NFS) — OpenClaw's `matrix-js-sdk` uses IndexedDB snapshots that are sensitive to file locking semantics
+
+### ConfigMap (`resources/configmap.yaml`)
+
+- Contains `openclaw.json` (base gateway config) and `AGENTS.md` (agent instructions)
+- Non-sensitive configuration only — no secrets in this resource
 
 ### SealedSecret (`resources/secret.yaml`)
 
-- Contains `config.json` with all sensitive configuration
-- LLM provider API keys, Matrix access token, device ID
-- Must be re-sealed when config changes (see AGENTS.md for workflow)
+- Contains `OPENCLAW_GATEWAY_TOKEN` and provider API keys (`MINIMAX_API_KEY`, etc.)
+- Stored as a SealedSecret in this repo; regenerate with kubeseal after changes
+
+### Service (`resources/service.yaml`)
+
+- ClusterIP on port 18789 for the Control UI
+- All outbound communication — no ingress needed
 
 ## Docker image
 
-### Build pipeline
+No custom Dockerfile needed. Uses the official pre-built image:
 
-```
-Dockerfile change on master
-        │
-        ▼
-GitHub Actions (.github/workflows/docker.yml)
-        │
-        ▼
-ghcr.io/marcleibold/nanobot:latest
-ghcr.io/marcleibold/nanobot:sha-<commit>
-```
-
-### Image contents
-
-The custom Dockerfile:
-
-1. **Base**: `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`
-2. **Clones** upstream NanoBot at a pinned version (`NANOBOT_VERSION` build arg)
-3. **Installs** `nanobot-ai[matrix]` for Matrix E2EE support via `matrix-nio[e2e]`
-4. **Entrypoint**: `nanobot gateway`
-
-### Why a custom image?
-
-- Upstream NanoBot does not publish pre-built Docker images
-- Matrix E2EE support (`matrix-nio[e2e]`) is an optional dependency not in the base install
-- Pinning the version ensures reproducible deployments
+- **Image**: `ghcr.io/openclaw/openclaw:2026.4.12-slim`
+- **Base**: Node.js 24 on Bookworm
+- **Registry**: GHCR (openclaw org)
 
 ## Data flow
 
 ### Message lifecycle
 
 1. User sends message in Element
-2. Synapse routes message to nanobot's Matrix account
-3. NanoBot gateway receives message via Matrix client sync
-4. NanoBot processes message, calls LLM provider API
+2. Synapse routes message to openclaw's Matrix account
+3. OpenClaw gateway receives message via Matrix client sync
+4. OpenClaw processes message, calls LLM provider API
 5. LLM responds with generated text
-6. NanoBot sends response back via Matrix client API
+6. OpenClaw sends response back via Matrix client API
 7. User sees response in Element
 
 ### Persistence
 
-NanoBot writes runtime state to `/root/.nanobot/`:
+OpenClaw writes runtime state to `/home/node/.openclaw/`:
 
 | Path | Purpose | Persistence |
 |---|---|---|
-| `config.json` | App configuration | Secret mount (read-only) |
-| `matrix-store/` | Matrix sync tokens, E2EE keys | PVC |
+| `openclaw.json` | Base config | ConfigMap mount (read-only) |
+| `credentials/matrix/` | Matrix access tokens, cached credentials | PVC |
+| `matrix/` | Matrix sync state, E2EE keys, IndexedDB snapshots | PVC |
 | `workspace/` | Agent workspace, memory | PVC |
-| `*.db` | SQLite databases (memory, etc.) | PVC |
+| `agents/` | Agent session state | PVC |
 
 ## Network dependencies
 
 | Direction | From | To | Protocol | Purpose |
 |---|---|---|---|---|
-| Outbound | NanoBot | `matrix.leibold.tech` | HTTPS | Matrix client API |
-| Outbound | NanoBot | `api.minimax.io` | HTTPS | LLM inference |
+| Outbound | OpenClaw | `matrix.leibold.tech` | HTTPS | Matrix client API |
+| Outbound | OpenClaw | `api.minimax.io` | HTTPS | LLM inference |
 
-NanoBot acts as a Matrix client — all communication is outbound-initiated. No ingress or inbound traffic is required.
+OpenClaw acts as a Matrix client — all communication is outbound-initiated. No ingress or inbound traffic is required.
 
 ## GitOps
 
 All cluster state is managed via ArgoCD:
 
-- **Source**: `marcleibold/nanobot` repo, `resources/` directory
+- **Source**: `marcleibold/openclaw` repo, `resources/` directory
 - **Sync**: Automated with prune and self-heal
-- **Namespace**: `nanobot` (auto-created)
+- **Namespace**: `openclaw` (auto-created)
 - The `application.yaml` must be applied manually to bootstrap
 
 See `AGENTS.md` for operational details.

@@ -1,27 +1,25 @@
 # AGENTS.md
 
-## nanobot
+## openclaw
 
-Personal AI assistant based on [HKUDS/NanoBot](https://github.com/HKUDS/NanoBot), deployed on the k3s cluster in the `nanobot` namespace. Communicates via the Matrix (Synapse) homeserver at `matrix.leibold.tech`.
+Personal AI assistant based on [OpenClaw](https://docs.openclaw.ai), deployed on the k3s cluster in the `openclaw` namespace. Communicates via Matrix (Synapse) at `matrix.leibold.tech` and exposes a Control UI on port 18789.
 
 ## Repo structure
 
 ```
-nanobot/
+openclaw/
   AGENTS.md               # AI agent coordination (this file)
   ARCHITECTURE.md         # System architecture and deployment topology
   DESIGN.md               # Design decisions and rationale
   CONTRIBUTING.md         # Commit, branch, and documentation conventions
   TODO.md                 # Open tasks and technical debt
-  Dockerfile              # Custom nanobot image with Matrix E2EE support
   application.yaml        # ArgoCD Application definition
-  .github/
-    workflows/
-      docker.yml          # CI: build and push Docker image to GHCR
   resources/
-    deployment.yaml       # Kubernetes Deployment (gateway mode)
-    pvc.yaml              # PersistentVolumeClaim for runtime data
-    secret.yaml           # SealedSecret for config.json
+    deployment.yaml       # Kubernetes Deployment (OpenClaw gateway)
+    pvc.yaml              # PersistentVolumeClaim (openclaw-home-pvc)
+    secret.yaml           # SealedSecret for gateway token + provider API keys
+    configmap.yaml        # ConfigMap for openclaw.json + AGENTS.md
+    service.yaml          # ClusterIP Service on port 18789
 ```
 
 ## Key documentation
@@ -36,17 +34,16 @@ nanobot/
 
 ## Upstream project
 
-- **Repo**: [HKUDS/NanoBot](https://github.com/HKUDS/NanoBot)
-- **Version**: `v0.1.4.post6` (pinned in `Dockerfile`)
+- **Repo**: [openclaw/openclaw](https://github.com/openclaw/openclaw)
+- **Docs**: [docs.openclaw.ai](https://docs.openclaw.ai)
 - **License**: MIT
-- **PyPI**: `nanobot-ai`
-- **No pre-built Docker image** — we build our own via GitHub Actions
+- **Image**: `ghcr.io/openclaw/openclaw:2026.4.12-slim` (pre-built, no custom image)
 
 ## ArgoCD
 
-- **App name**: `nanobot`
-- **Namespace**: `nanobot`
-- **Repo**: `marcleibold/nanobot` (private, personal account)
+- **App name**: `openclaw`
+- **Namespace**: `openclaw`
+- **Repo**: `marcleibold/openclaw` (private, personal account)
 - **Sync**: automated, prune, selfHeal
 
 Apply the ArgoCD Application to the cluster once (or via the argo-cd app-of-apps if one exists):
@@ -57,100 +54,105 @@ kubectl apply -f application.yaml -n argo-cd
 
 ## Docker image
 
-The custom Docker image is built from `Dockerfile` in this repo. It:
+No custom image build needed. Uses the pre-built OpenClaw image:
 
-1. Uses `ghcr.io/astral-sh/uv:python3.12-bookworm-slim` as the base
-2. Clones upstream NanoBot at a pinned version tag
-3. Installs with `.[matrix]` extras for Matrix E2EE support
-4. Runs `nanobot gateway` as the default command
-
-**Registry**: `ghcr.io/marcleibold/nanobot`
-**Tags**: `latest`, `sha-<commit>`
-
-The GitHub Actions workflow (`.github/workflows/docker.yml`) builds and pushes on changes to `Dockerfile` on the `master` branch, or on manual dispatch.
+- **Image**: `ghcr.io/openclaw/openclaw:2026.4.12-slim`
+- **Base**: Node.js 24 on Bookworm
+- **Registry**: GHCR (openclaw org)
 
 ## Configuration
 
-nanobot is configured via `config.json`, which contains:
+OpenClaw is configured via `openclaw.json` (in the ConfigMap) and environment variables (in the Secret).
 
-- **LLM provider** credentials (API keys)
-- **Matrix channel** settings (homeserver, userId, accessToken, deviceId)
-- **Agent defaults** (model, provider)
+### Environment variables (Secret)
 
-This config is stored as a SealedSecret (`nanobot-config`) and mounted into the pod at `/root/.nanobot/config.json`.
+| Key | Purpose |
+|---|---|
+| `OPENCLAW_GATEWAY_TOKEN` | Token for Control UI auth (auto-generated) |
+| `MINIMAX_API_KEY` | MiniMax API key |
+| `ANTHROPIC_API_KEY` | Optional: Anthropic API key (Claude) |
+| `OPENAI_API_KEY` | Optional: OpenAI API key |
 
-### Config structure (template)
+### openclaw.json (ConfigMap)
 
-```json
+The base config enables local mode with token auth. Matrix channel config is added here.
+
+### Matrix channel config example
+
+Add to `openclaw.json` in the ConfigMap:
+
+```json5
 {
-  "providers": {
-    "minimax": {
-      "apiKey": "<MINIMAX_API_KEY>"
+  channels: {
+    matrix: {
+      enabled: true,
+      homeserver: "https://matrix.leibold.tech",
+      accessToken: "<MATRIX_ACCESS_TOKEN>",
+      encryption: true,
+      dm: { policy: "allowlist", allowFrom: ["@mleibold:matrix.leibold.tech"] },
+      groupPolicy: "allowlist",
+      groupAllowFrom: ["@mleibold:matrix.leibold.tech"],
+      autoJoin: "allowlist",
+      autoJoinAllowlist: ["*"]
     }
   },
-  "agents": {
-    "defaults": {
-      "model": "minimax-m2.7",
-      "provider": "minimax"
+  agents: {
+    defaults: {
+      model: { primary: "minimax/MiniMax-M2.7" }
     }
-  },
-  "channels": {
-    "matrix": {
-      "enabled": true,
-      "homeserver": "https://matrix.leibold.tech",
-      "userId": "@nanobot:matrix.leibold.tech",
-      "accessToken": "<MATRIX_ACCESS_TOKEN>",
-      "deviceId": "NANOBOT01",
-      "e2eeEnabled": true,
-      "allowFrom": ["@mleibold:matrix.leibold.tech"],
-      "groupPolicy": "mention"
-    }
-  },
-  "gateway": {
-    "port": 18790
   }
 }
 ```
 
-## Secrets
+### Secrets
 
-Secrets are encrypted with Sealed Secrets. See the root `AGENTS.md` at `/home/spof/Projects/AGENTS.md` for the kubeseal workflow.
-
-The `nanobot-config` secret contains a single key `config.json` with the full nanobot configuration.
-
-### Creating the SealedSecret
+The `openclaw-secrets` Secret stores gateway token and provider API keys. Since this repo uses sealed-secrets, regenerate it with:
 
 ```bash
-kubectl create secret generic nanobot-config \
-  --namespace nanobot \
-  --from-file=config.json=config-plain.json \
+kubectl create secret generic openclaw-secrets \
+  --namespace openclaw \
+  --from-literal=OPENCLAW_GATEWAY_TOKEN="$(openssl rand -hex 32)" \
+  --from-literal=MINIMAX_API_KEY="<your-key>" \
   --dry-run=client -o yaml | \
   /tmp/kubeseal --cert /tmp/sealed-secrets-cert.pem --format yaml > resources/secret.yaml
 ```
 
 ## Networking
 
-- **No HTTP server**: the gateway does not expose an HTTP port (the `port` in config is unused by the current NanoBot version)
-- **No Service or Ingress**: since there is no listening port, no Kubernetes Service is needed
-- **Matrix connection**: outbound HTTPS to `matrix.leibold.tech`
-- NanoBot acts as a Matrix client — all communication is outbound-initiated, no inbound traffic required
+- **Control UI**: port 18789 via ClusterIP Service (`kubectl port-forward svc/openclaw 18789:18789 -n openclaw`)
+- **Matrix**: outbound HTTPS to `matrix.leibold.tech`
+- **LLM providers**: outbound HTTPS to `api.minimax.io` (and others)
+- All communication is outbound-initiated — no ingress or Ingress needed
 
 ## Persistence
 
-- **PVC**: `nanobot-data` (1Gi, `local-path` storageClass, pinned to `hp-elitedesk`)
-- Stores Matrix sync state (`matrix-store`), E2EE keys, workspace data
-- Uses local-path instead of NFS because matrix-nio's SQLite E2EE store hangs on NFS file locking
+- **PVC**: `openclaw-home-pvc` (10Gi, `local-path` storageClass)
+- **Path**: `/home/node/.openclaw/` (uid 1000)
+- **Contents**: config, credentials, Matrix crypto store, session state
+- **Node binding**: uses `local-path` on whatever node the pod lands on
 
-## SSH access to cluster nodes
+## Control UI access
 
-The bot can SSH *out* to nodes (`openssh-client` is installed). It cannot be reached via SSH — no server is running.
+```bash
+kubectl port-forward svc/openclaw 18789:18789 -n openclaw
+```
 
-SSH config and keys are stored on the PVC at `/root/.nanobot/ssh/`, which is symlinked to `~/.ssh` inside the container. Keys and `known_hosts` survive pod restarts. The bot runs as `root`, so `~/.ssh` → `/root/.nanobot/ssh`.
+Then open http://localhost:18789 in your browser. Use the gateway token to authenticate:
 
-Initial key provisioning is a one-time manual step — see `TODO.md`.
+```bash
+kubectl get secret openclaw-secrets -n openclaw -o jsonpath='{.data.OPENCLAW_GATEWAY_TOKEN}' | base64 -d && echo
+```
+
+## E2EE (Matrix)
+
+Matrix E2EE is handled by the `matrix-js-sdk`. On first deploy:
+1. Complete device verification in your Element client when the bot user appears
+2. Cross-signing is bootstrapped automatically on startup if not already verified
+
+E2EE state lives in the PVC. Deleting the PVC means re-verifying all Matrix devices.
 
 ## Notes
 
-- The `application.yaml` is not synced by ArgoCD itself — it must be applied manually or via an app-of-apps pattern.
-- The Matrix account (`@nanobot:matrix.leibold.tech`) is registered on Synapse with device ID `NANOBOT01`.
-- E2EE requires a stable `deviceId` and persistent `matrix-store` directory — never delete the PVC without re-verifying E2EE sessions.
+- The `application.yaml` is not synced by ArgoCD itself — apply manually or via an app-of-apps pattern
+- No SSH access in the OpenClaw image
+- The bot runs as non-root (uid 1000) with a read-only root filesystem
