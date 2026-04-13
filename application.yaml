@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nanobot
+  name: openclaw
   namespace: argo-cd
 spec:
   project: spof-cluster
   sources:
-    - repoURL: "https://github.com/marcleibold/nanobot.git"
+    - repoURL: "https://github.com/marcleibold/openclaw.git"
       targetRevision: HEAD
       path: resources
   destination:
     server: "https://kubernetes.default.svc"
-    namespace: nanobot
+    namespace: openclaw
   syncPolicy:
     automated:
       prune: true
