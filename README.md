@@ -13,29 +13,27 @@ Personal AI assistant based on [OpenClaw](https://docs.openclaw.ai), running on 
 
 OpenClaw is a self-hosted gateway that connects chat channels (Matrix, Telegram, Discord, etc.) to AI agents. This repo deploys it on a personal k3s cluster with Matrix as the primary chat interface and MiniMax M2.7 as the reasoning model.
 
-## Repository Structure
+## ArgoCD Application
 
-```
-openclaw/
-├── AGENTS.md               # AI agent coordination (this file)
-├── ARCHITECTURE.md         # System architecture
-├── DESIGN.md               # Design decisions
-├── application.yaml        # ArgoCD Application manifest
-└── resources/              # Kubernetes resources
-    ├── deployment.yaml     # OpenClaw gateway Deployment
-    ├── pvc.yaml            # Persistent storage
-    ├── secret.yaml         # SealedSecret for API keys
-    ├── configmap.yaml      # ConfigMap for openclaw.json + AGENTS.md
-    └── service.yaml        # ClusterIP Service on 18789
+The ArgoCD Application for openclaw is managed in the [cluster repository](https://github.com/SP0Fs/cluster) under `applications/`. Do not apply `application.yaml` from this repo - it is deprecated.
+
+## Secrets
+
+The `openclaw-secrets` SealedSecret stores gateway token and provider API keys. To regenerate:
+
+```bash
+kubectl create secret generic openclaw-secrets \
+  --namespace openclaw \
+  --from-literal=OPENCLAW_GATEWAY_TOKEN="$(openssl rand -hex 32)" \
+  --from-literal=MINIMAX_API_KEY="<your-key>" \
+  --dry-run=client -o yaml | \
+  /tmp/kubeseal --cert /tmp/sealed-secrets-cert.pem --format yaml > resources/secret.yaml
 ```
 
 ## Quick start
 
 ```bash
-# Apply to cluster (after sealing secret with your API keys)
-kubectl apply -f application.yaml -n argo-cd
-
-# Access Control UI
+# Access Control UI (after deployment via cluster repo)
 kubectl port-forward svc/openclaw 18789:18789 -n openclaw
 open http://localhost:18789
 
@@ -55,4 +53,5 @@ kubectl get secret openclaw-secrets -n openclaw -o jsonpath='{.data.OPENCLAW_GAT
 
 - Docs: [docs.openclaw.ai](https://docs.openclaw.ai)
 - Source: [github.com/marcleibold/openclaw](https://github.com/marcleibold/openclaw)
+- Cluster repo: [github.com/SP0Fs/cluster](https://github.com/SP0Fs/cluster)
 - Namespace: `openclaw`

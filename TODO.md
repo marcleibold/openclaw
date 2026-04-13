@@ -2,14 +2,24 @@
 
 Open tasks and technical debt, roughly ordered by priority.
 
-## Initial deployment
+## Deployment Status
 
-- [x] Create `openclaw` namespace and apply ArgoCD app: `kubectl apply -f application.yaml -n argo-cd`
-- [ ] Generate and seal `openclaw-secrets` Secret with your API keys
-- [ ] Configure Matrix channel in `openclaw.json` (add homeserver, accessToken)
-- [ ] Verify Control UI is accessible at http://localhost:18789 with gateway token
+- [x] OpenClaw gateway deployed and running in `openclaw` namespace
+- [x] ArgoCD Application managed in cluster repo (github.com/SP0Fs/cluster)
+- [x] Gateway bind changed to `lan` for kubelet probes
+- [x] Default model set to `minimax/MiniMax-M2.7`
+
+## Required Configuration
+
+- [ ] Replace placeholder secrets in `openclaw-secrets` with real API keys
+  - MINIMAX_API_KEY
+  - OPENCLAW_GATEWAY_TOKEN (auto-generated on first run)
+- [ ] Configure Matrix channel in `openclaw.json`:
+  - homeserver: https://matrix.leibold.tech
+  - userId: @openclaw:matrix.leibold.tech
+  - accessToken: (from Matrix registration)
+- [ ] Verify Control UI accessible at http://localhost:18789
 - [ ] Verify Matrix connection — bot joins and responds to DMs
-- [ ] Re-verify Matrix E2EE devices in Element client (E2EE state is fresh on first deploy)
 
 ## Post-deployment verification
 
@@ -20,7 +30,7 @@ Open tasks and technical debt, roughly ordered by priority.
 
 ## Improvements
 
-- [ ] Pin image to SHA tag instead of `latest` in deployment.yaml
+- [ ] Pin image to SHA tag instead of versioned tag in cluster repo
 - [ ] Add Prometheus metrics scraping if OpenClaw exposes them
 - [ ] Add network policy to restrict egress to only matrix.leibold.tech and api.minimax.io
 - [ ] Add `podDisruptionBudget` (probably overkill for single replica)
