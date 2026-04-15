@@ -19,6 +19,11 @@ data:
           "enabled": true
         }
       },
+      "providers": {
+        "minimax": {
+          "apiKey": "sk-cp-meHZUrLO90oBnHfTWhX4wmY3qi5NvFNiKCLoOihrET4kvQ3uD0xD1OfKdBuHxJ-kO31GujfdLQEqQGiz0gyclPBnEwjm1NE6f5RtUEEX6tKypm4wWcyyU2s"
+        }
+      },
       "agents": {
         "defaults": {
           "model": { "primary": "minimax/MiniMax-M2.7" },
@@ -32,7 +37,26 @@ data:
           }
         ]
       },
-      "cron": { "enabled": false }
+      "cron": { "enabled": false },
+      "plugins": {
+        "entries": {
+          "minimax": { "enabled": true }
+        }
+      },
+      "channels": {
+        "matrix": {
+          "enabled": true,
+          "accounts": {
+            "openclaw": {
+              "name": "OpenClaw Bot",
+              "enabled": true,
+              "homeserver": "https://matrix.leibold.tech",
+              "accessToken": "syt_b3BlbmNsYXc_VQcluyMsBedTgtgoiAdY_4fGPJX",
+              "deviceName": "OPENCLAW01"
+            }
+          }
+        }
+      }
     }
   AGENTS.md: |
     # OpenClaw Assistant
