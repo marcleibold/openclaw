@@ -19,11 +19,6 @@ data:
           "enabled": true
         }
       },
-      "providers": {
-        "minimax": {
-          "apiKey": "sk-cp-meHZUrLO90oBnHfTWhX4wmY3qi5NvFNiKCLoOihrET4kvQ3uD0xD1OfKdBuHxJ-kO31GujfdLQEqQGiz0gyclPBnEwjm1NE6f5RtUEEX6tKypm4wWcyyU2s"
-        }
-      },
       "agents": {
         "defaults": {
           "model": { "primary": "minimax/MiniMax-M2.7" },
