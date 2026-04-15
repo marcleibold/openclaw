@@ -46,7 +46,7 @@ data:
               "name": "OpenClaw Bot",
               "enabled": true,
               "homeserver": "https://matrix.leibold.tech",
-              "accessToken": "syt_b3BlbmNsYXc_hhvfnzHnMlxHYwmgcJSA_2F7OVR",
+              "accessToken": "syt_b3BlbmNsYXc_szqyslsKxiqveDLhWXfL_1nkOlO",
               "deviceName": "OPENCLAW01"
             }
           }
