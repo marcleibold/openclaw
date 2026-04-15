@@ -33,6 +33,8 @@ spec:
               cp /config/openclaw.json /home/node/.openclaw/openclaw.json
               mkdir -p /home/node/.openclaw/workspace
               cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
+              mkdir -p /home/node/.openclaw/agents/default/agent
+              cp /run/secrets/auth-profiles.json /home/node/.openclaw/agents/default/agent/auth-profiles.json 2>/dev/null || true
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
@@ -48,6 +50,9 @@ spec:
               mountPath: /home/node/.openclaw
             - name: config
               mountPath: /config
+            - name: auth-profiles-secret
+              mountPath: /run/secrets/auth-profiles
+              readOnly: true
       containers:
         - name: gateway
           image: ghcr.io/openclaw/openclaw:2026.4.12-slim
@@ -134,5 +139,11 @@ spec:
         - name: config
           configMap:
             name: openclaw-config
+        - name: auth-profiles-secret
+          secret:
+            secretName: openclaw-secrets
+            items:
+              - key: AUTH_PROFILES_JSON
+                path: auth-profiles.json
         - name: tmp-volume
           emptyDir: {}
