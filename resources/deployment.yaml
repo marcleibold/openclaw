@@ -37,9 +37,10 @@ spec:
               apt-get update -qq
               apt-get install -y -qq gh > /dev/null 2>&1
               apt-get install -y -qq chromium > /dev/null 2>&1
-              cp -r /usr/bin/gh /tools/gh
-              cp -r /usr/bin/chromium /tools/chromium
-              cp -r /usr/lib/chromium /tools/chromium-libs 2>/dev/null || true
+              cp -r /usr/bin/gh /tools/gh && \
+              cp -r /usr/bin/chromium /tools/chromium && \
+              mkdir -p /tools/chromium-libs && \
+              cp -r /usr/lib/chromium/* /tools/chromium-libs/ 2>/dev/null || true
           securityContext:
             runAsUser: 0
             runAsGroup: 0
