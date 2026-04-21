@@ -100,7 +100,7 @@ spec:
             - name: HOME
               value: /home/node
             - name: PATH
-              value: /usr/local/bin:/usr/bin:/bin
+              value: /opt/tools:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
             - name: NODE_ENV
@@ -156,7 +156,7 @@ spec:
             - name: tmp-volume
               mountPath: /tmp
             - name: tools
-              mountPath: /usr/local/bin
+              mountPath: /opt/tools
               readOnly: true
           securityContext:
             runAsNonRoot: true
