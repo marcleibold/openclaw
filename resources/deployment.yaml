@@ -23,6 +23,36 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
+        - name: install-tools
+          image: debian:bookworm-slim
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              apt-get update -qq
+              apt-get install -y -qq curl gnupg > /dev/null 2>&1
+              curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+              apt-get update -qq
+              apt-get install -y -qq gh > /dev/null 2>&1
+              apt-get install -y -qq chromium > /dev/null 2>&1
+              cp -r /usr/bin/gh /tools/gh
+              cp -r /usr/bin/chromium /tools/chromium
+              cp -r /usr/lib/chromium /tools/chromium-libs 2>/dev/null || true
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+          volumeMounts:
+            - name: tools
+              mountPath: /tools
         - name: init-config
           image: busybox:1.37
           imagePullPolicy: IfNotPresent
@@ -69,6 +99,8 @@ spec:
           env:
             - name: HOME
               value: /home/node
+            - name: PATH
+              value: /usr/local/bin:/usr/bin:/bin
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
             - name: NODE_ENV
@@ -123,6 +155,9 @@ spec:
               mountPath: /home/node/.openclaw
             - name: tmp-volume
               mountPath: /tmp
+            - name: tools
+              mountPath: /usr/local/bin
+              readOnly: true
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
@@ -133,6 +168,8 @@ spec:
               drop:
                 - ALL
       volumes:
+        - name: tools
+          emptyDir: {}
         - name: openclaw-home
           persistentVolumeClaim:
             claimName: openclaw-home-pvc
