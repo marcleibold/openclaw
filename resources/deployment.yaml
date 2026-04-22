@@ -37,7 +37,7 @@ spec:
               apt-get update -qq
               apt-get install -y -qq gh > /dev/null 2>&1
               apt-get install -y chromium 2>&1 | tail -5
-              apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libfontconfig1 libxcb1 libxkbcommon0 2>&1 | tail -5
+              apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libfontconfig1 libxcb1 libxkbcommon0 libpulse0 2>&1 | tail -5
               cp -r /usr/bin/gh /tools/gh
               cp -r /usr/bin/chromium /tools/chromium
               mkdir -p /tools/chromium-libs
@@ -111,7 +111,7 @@ spec:
             - name: PATH
               value: /tools:/opt/tools:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
             - name: LD_LIBRARY_PATH
-              value: /opt/tools/chromium-libs
+              value: /opt/tools/chromium-libs:/opt/tools/chromium-libs/x86_64-linux-gnu:/opt/tools/chromium-libs/pulseaudio
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
             - name: NODE_ENV
