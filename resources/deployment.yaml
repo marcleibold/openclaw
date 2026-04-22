@@ -107,6 +107,8 @@ spec:
               value: /home/node
             - name: PATH
               value: /tools:/opt/tools:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
+            - name: LD_LIBRARY_PATH
+              value: /opt/tools/chromium-libs
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
             - name: NODE_ENV
