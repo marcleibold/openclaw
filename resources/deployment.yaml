@@ -36,13 +36,14 @@ spec:
               echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
               apt-get update -qq
               apt-get install -y -qq gh > /dev/null 2>&1
-              apt-get install -y -qq chromium > /dev/null 2>&1
-              apt-get install -y -qq chromium-driver > /dev/null 2>&1 || true
-              apt-get install -y -qq libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libfontconfig1 libxcb1 libxkbcommon0 > /dev/null 2>&1 || true
+              apt-get install -y chromium 2>&1 | tail -5
+              apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libfontconfig1 libxcb1 libxkbcommon0 2>&1 | tail -5
               cp -r /usr/bin/gh /tools/gh
               cp -r /usr/bin/chromium /tools/chromium
               mkdir -p /tools/chromium-libs
               cp -r /usr/lib/chromium/* /tools/chromium-libs/ 2>/dev/null || true
+              mkdir -p /tools/chromium-libs/x86_64-linux-gnu
+              cp -r /usr/lib/x86_64-linux-gnu/* /tools/chromium-libs/x86_64-linux-gnu/ 2>/dev/null || true
               mkdir -p /tools/etc/chromium.d
               cp -r /etc/chromium.d/* /tools/etc/chromium.d/ 2>/dev/null || true
               chmod 755 /tools/etc/chromium.d
@@ -110,7 +111,7 @@ spec:
             - name: PATH
               value: /tools:/opt/tools:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
             - name: LD_LIBRARY_PATH
-              value: /opt/tools/chromium-libs:/usr/lib/x86_64-linux-gnu:/usr/lib
+              value: /opt/tools/chromium-libs:/opt/tools/chromium-libs/x86_64-linux-gnu:/usr/lib
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
             - name: NODE_ENV
