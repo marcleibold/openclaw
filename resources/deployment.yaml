@@ -44,8 +44,7 @@ spec:
               mkdir -p /tools/etc/chromium.d
               cp -r /etc/chromium.d/* /tools/etc/chromium.d/ 2>/dev/null || true
               chmod 755 /tools/etc/chromium.d
-              rm -rf /etc/chromium.d
-              ln -s /opt/tools/etc/chromium.d /etc/chromium.d
+              sed -i 's|/etc/chromium.d|/opt/tools/etc/chromium.d|g' /tools/chromium
           securityContext:
             runAsUser: 0
             runAsGroup: 0
