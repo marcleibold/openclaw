@@ -42,8 +42,8 @@ spec:
               cp -r /usr/bin/chromium /tools/chromium
               mkdir -p /tools/chromium-libs
               cp -r /usr/lib/chromium/* /tools/chromium-libs/ 2>/dev/null || true
-              mkdir -p /tools/chromium-libs/x86_64-linux-gnu
-              cp -r /usr/lib/x86_64-linux-gnu/* /tools/chromium-libs/x86_64-linux-gnu/ 2>/dev/null || true
+              cp -r /usr/lib/x86_64-linux-gnu/* /tools/chromium-libs/ 2>/dev/null || true
+              cp -r /usr/lib/* /tools/chromium-libs/ 2>/dev/null || true
               mkdir -p /tools/etc/chromium.d
               cp -r /etc/chromium.d/* /tools/etc/chromium.d/ 2>/dev/null || true
               chmod 755 /tools/etc/chromium.d
@@ -111,7 +111,7 @@ spec:
             - name: PATH
               value: /tools:/opt/tools:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
             - name: LD_LIBRARY_PATH
-              value: /opt/tools/chromium-libs:/opt/tools/chromium-libs/x86_64-linux-gnu:/usr/lib
+              value: /opt/tools/chromium-libs
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
             - name: NODE_ENV
