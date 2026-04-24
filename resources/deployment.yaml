@@ -36,26 +36,21 @@ spec:
               echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
               apt-get update -qq
               apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 > /dev/null 2>&1
-              apt-get install -y chromium 2>&1 | tail -5
+
               apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libfontconfig1 libxcb1 libxkbcommon0 libpulse0 2>&1 | tail -5
               # Install kubectl
               curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
               chmod +x /usr/local/bin/kubectl
               cp -r /usr/bin/gh /tools/gh
-              cp -r /usr/bin/chromium /tools/chromium
-              cp -r /usr/bin/ffmpeg /tools/ffmpeg
+                            cp -r /usr/bin/ffmpeg /tools/ffmpeg
               cp /usr/local/bin/kubectl /tools/kubectl
-              mkdir -p /tools/chromium-libs
-              cp -r /usr/lib/chromium/* /tools/chromium-libs/ 2>/dev/null || true
+                             2>/dev/null || true
               cp -r /usr/lib/x86_64-linux-gnu/* /tools/chromium-libs/ 2>/dev/null || true
               cp -r /usr/lib/* /tools/chromium-libs/ 2>/dev/null || true
               cp -r /usr/lib/x86_64-linux-gnu/libav* /tools/chromium-libs/ 2>/dev/null || true
               cp -r /usr/lib/x86_64-linux-gnu/libsw* /tools/chromium-libs/ 2>/dev/null || true
-              mkdir -p /tools/etc/chromium.d
-              cp -r /etc/chromium.d/* /tools/etc/chromium.d/ 2>/dev/null || true
-              chmod 755 /tools/etc/chromium.d
-              sed -i 's|/etc/chromium.d|/opt/tools/etc/chromium.d|g' /tools/chromium
-              sed -i 's|LIBDIR=/usr/lib/\$APPNAME|LIBDIR=/opt/tools/chromium-libs|g' /tools/chromium
+                             2>/dev/null || true
+                                          sed -i 's|LIBDIR=/usr/lib/\$APPNAME|LIBDIR=/opt/tools/chromium-libs|g' /tools/chromium
           securityContext:
             runAsUser: 0
             runAsGroup: 0
