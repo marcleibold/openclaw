@@ -118,7 +118,7 @@ spec:
             - name: PATH
               value: /tools:/opt/tools:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
             - name: LD_LIBRARY_PATH
-              value: /opt/tools/chromium-libs:/opt/tools/chromium-libs/x86_64-linux-gnu:/opt/tools/chromium-libs/pulseaudio
+              value: /opt/tools/chromium-libs:/opt/tools/chromium-libs/x86_64-linux-gnu:/opt/tools/chromium-libs/pulseaudio:/opt/tools/chromium-libs/libavcodec59:/opt/tools/chromium-libs/libavfilter8:/opt/tools/chromium-libs/libavformat59:/opt/tools/chromium-libs/libavutil57:/opt/tools/chromium-libs/libpostproc56:/opt/tools/chromium-libs/libswresample4:/opt/tools/chromium-libs/libswscale6
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
             - name: NODE_ENV
