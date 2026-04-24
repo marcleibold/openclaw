@@ -49,6 +49,8 @@ spec:
               cp -r /usr/lib/chromium/* /tools/chromium-libs/ 2>/dev/null || true
               cp -r /usr/lib/x86_64-linux-gnu/* /tools/chromium-libs/ 2>/dev/null || true
               cp -r /usr/lib/* /tools/chromium-libs/ 2>/dev/null || true
+              cp -r /usr/lib/x86_64-linux-gnu/libav* /tools/chromium-libs/ 2>/dev/null || true
+              cp -r /usr/lib/x86_64-linux-gnu/libsw* /tools/chromium-libs/ 2>/dev/null || true
               mkdir -p /tools/etc/chromium.d
               cp -r /etc/chromium.d/* /tools/etc/chromium.d/ 2>/dev/null || true
               chmod 755 /tools/etc/chromium.d
