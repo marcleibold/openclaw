@@ -1,9 +1,17 @@
+# Final image with whisper-cli from official whisper.cpp image
+FROM ghcr.io/ggml-org/whisper.cpp:latest AS whisper-source
+
 FROM ghcr.io/openclaw/openclaw:2026.4.12-slim
 
 USER root
 
+# Copy whisper-cli binary from whisper.cpp image (runtime stage has it at /app/build/bin/)
+COPY --from=whisper-source /app/build/bin/whisper-cli /usr/local/bin/whisper-cli
+RUN chmod +x /usr/local/bin/whisper-cli
+
+# Install GitHub CLI and other tools
 RUN apt-get update -qq && \
-    apt-get install -y -qq curl unzip gnupg ca-certificates > /dev/null 2>&1 && \
+    apt-get install -y -qq curl gnupg ca-certificates > /dev/null 2>&1 && \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
     apt-get update -qq && \
@@ -12,19 +20,6 @@ RUN apt-get update -qq && \
     chmod +x /usr/local/bin/kubectl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Build whisper.cpp from source - no prebuilt Linux binary available
-RUN apt-get update -qq && \
-    apt-get install -y -qq cmake build-essential > /dev/null 2>&1 && \
-    cd /tmp && \
-    git clone --depth 1 --branch v1.8.0 https://github.com/ggml-org/whisper.cpp.git && \
-    cd whisper.cpp && \
-    cmake -B build && \
-    cmake --build build -j$(nproc) && \
-    cp build/bin/whisper-cli /usr/local/bin/ && \
-    chmod +x /usr/local/bin/whisper-cli && \
-    cd / && rm -rf /tmp/whisper.cpp /tmp/build && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Download base model from HuggingFace at build time
 RUN mkdir -p /usr/local/share/whisper && \
