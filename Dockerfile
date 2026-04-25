@@ -1,15 +1,21 @@
-# Final image with whisper-cli from official whisper.cpp image
-FROM ghcr.io/ggml-org/whisper.cpp:latest AS whisper-source
+# Build whisper-cli from source (no official prebuilt Linux binary available)
+FROM ubuntu:22.04 AS builder
 
+RUN apt-get update && \
+    apt-get install -y build-essential cmake git curl && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+WORKDIR /app
+RUN git clone --depth 1 --branch v1.8.0 https://github.com/ggml-org/whisper.cpp.git && \
+    cd whisper.cpp && \
+    cmake -B build && \
+    cmake --build build -j$(nproc)
+
+# Final image
 FROM ghcr.io/openclaw/openclaw:2026.4.12-slim
 
 USER root
 
-# Copy whisper-cli binary from whisper.cpp image (runtime stage has it at /app/build/bin/)
-COPY --from=whisper-source /app/build/bin/whisper-cli /usr/local/bin/whisper-cli
-RUN chmod +x /usr/local/bin/whisper-cli
-
-# Install GitHub CLI and other tools
 RUN apt-get update -qq && \
     apt-get install -y -qq curl gnupg ca-certificates > /dev/null 2>&1 && \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
@@ -21,7 +27,11 @@ RUN apt-get update -qq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Download base model from HuggingFace at build time
+# Copy whisper-cli from builder
+COPY --from=builder /app/whisper.cpp/build/bin/whisper-cli /usr/local/bin/whisper-cli
+RUN chmod +x /usr/local/bin/whisper-cli
+
+# Download base model at build time
 RUN mkdir -p /usr/local/share/whisper && \
     curl -fsSL https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o /usr/local/share/whisper/ggml-base.bin && \
     chmod 644 /usr/local/share/whisper/ggml-base.bin
