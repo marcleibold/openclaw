@@ -9,11 +9,7 @@ WORKDIR /app
 RUN git clone --depth 1 --branch v1.8.0 https://github.com/ggml-org/whisper.cpp.git && \
     cd whisper.cpp && \
     cmake -B build && \
-    cmake --build build -j$(nproc) && \
-    cmake --install build --prefix /install && \
-    cp build/bin/whisper-cli /install/ && \
-    cp -r /app/whisper.cpp/build/src/libwhisper.so* /install/ 2>/dev/null || true && \
-    cp -r /app/whisper.cpp/build/src/libggml.so* /install/ 2>/dev/null || true
+    cmake --build build -j$(nproc)
 
 # Stage 2: Final image with openclaw base
 FROM ghcr.io/openclaw/openclaw:2026.4.12-slim
@@ -31,11 +27,14 @@ RUN apt-get update -qq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Copy whisper-cli and its shared libraries from builder
-COPY --from=builder /install/whisper-cli /usr/local/bin/whisper-cli
-COPY --from=builder /install/libwhisper.so* /usr/local/lib/ 2>/dev/null || true
-COPY --from=builder /install/libggml.so* /usr/local/lib/ 2>/dev/null || true
-RUN chmod +x /usr/local/bin/whisper-cli && ldconfig
+# Copy whisper-cli binary from builder
+COPY --from=builder /app/whisper.cpp/build/bin/whisper-cli /usr/local/bin/whisper-cli
+RUN chmod +x /usr/local/bin/whisper-cli
+
+# Copy shared libraries if they exist (whisper.cpp may build static)
+COPY --from=builder /app/whisper.cpp/build/src/libwhisper.so* /usr/local/lib/ 2>/dev/null || :
+COPY --from=builder /app/whisper.cpp/build/src/libggml.so* /usr/local/lib/ 2>/dev/null || :
+RUN ldconfig 2>/dev/null || true
 
 # Download base model from HuggingFace at build time
 RUN mkdir -p /usr/local/share/whisper && \
