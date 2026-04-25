@@ -13,14 +13,15 @@ RUN apt-get update -qq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install whisper.cpp
-RUN curl -fsSL https://github.com/ggerganov/whisper.cpp/releases/download/v1.8.0/whisper-bin-linux-amd64.tar.gz -o /tmp/whisper.tar.gz && \
-    tar -xzf /tmp/whisper.tar.gz -C /usr/local/bin && \
+# Install whisper.cpp - download the x64 binary zip and extract
+RUN curl -fsSL https://github.com/ggml-org/whisper.cpp/releases/download/v1.8.0/whisper-bin-x64.zip -o /tmp/whisper.zip && \
+    unzip -q /tmp/whisper.zip -d /usr/local/bin && \
     chmod +x /usr/local/bin/whisper && \
-    rm /tmp/whisper.tar.gz
+    rm /tmp/whisper.zip
 
-# Download base model (150MB) - ggml-base.bin for German
-RUN curl -fsSL https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o /usr/local/share/whisper/ggml-base.bin && \
+# Download base model for German - from huggingface mirror if needed
+RUN mkdir -p /usr/local/share/whisper && \
+    curl -fsSL https://huggingface.co/datasets/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o /usr/local/share/whisper/ggml-base.bin && \
     chmod 644 /usr/local/share/whisper/ggml-base.bin
 
 USER 1000:1000
