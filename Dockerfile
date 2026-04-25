@@ -3,7 +3,7 @@ FROM ghcr.io/openclaw/openclaw:2026.4.12-slim
 USER root
 
 RUN apt-get update -qq && \
-    apt-get install -y -qq curl gnupg > /dev/null 2>&1 && \
+    apt-get install -y -qq curl unzip gnupg > /dev/null 2>&1 && \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
     apt-get update -qq && \
@@ -13,13 +13,13 @@ RUN apt-get update -qq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install whisper.cpp binary
+# Download and install whisper.cpp binary during build
 RUN curl -fsSL https://github.com/ggml-org/whisper.cpp/releases/download/v1.8.0/whisper-bin-x64.zip -o /tmp/whisper.zip && \
-    python3 -c "import zipfile; zipfile.ZipFile('/tmp/whisper.zip').extractall('/usr/local/bin')" && \
+    unzip -q /tmp/whisper.zip -d /usr/local/bin && \
     chmod +x /usr/local/bin/whisper-cli && \
     rm /tmp/whisper.zip
 
-# Download base model for German
+# Download base model during build - pulled from HuggingFace, not stored in repo
 RUN mkdir -p /usr/local/share/whisper && \
     curl -fsSL https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o /usr/local/share/whisper/ggml-base.bin && \
     chmod 644 /usr/local/share/whisper/ggml-base.bin
