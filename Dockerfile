@@ -13,15 +13,15 @@ RUN apt-get update -qq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install whisper.cpp - download the x64 binary zip and extract
+# Install whisper.cpp binary
 RUN curl -fsSL https://github.com/ggml-org/whisper.cpp/releases/download/v1.8.0/whisper-bin-x64.zip -o /tmp/whisper.zip && \
-    unzip -q /tmp/whisper.zip -d /usr/local/bin && \
-    chmod +x /usr/local/bin/whisper && \
+    python3 -c "import zipfile; zipfile.ZipFile('/tmp/whisper.zip').extractall('/usr/local/bin')" && \
+    chmod +x /usr/local/bin/whisper-cli && \
     rm /tmp/whisper.zip
 
-# Download base model for German - from huggingface mirror if needed
+# Download base model for German
 RUN mkdir -p /usr/local/share/whisper && \
-    curl -fsSL https://huggingface.co/datasets/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o /usr/local/share/whisper/ggml-base.bin && \
+    curl -fsSL https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o /usr/local/share/whisper/ggml-base.bin && \
     chmod 644 /usr/local/share/whisper/ggml-base.bin
 
 USER 1000:1000
