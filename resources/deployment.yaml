@@ -23,47 +23,6 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-        - name: install-tools
-          image: debian:bookworm-slim
-          imagePullPolicy: IfNotPresent
-          command:
-            - sh
-            - -c
-            - |
-              apt-get update -qq
-              apt-get install -y -qq curl gnupg > /dev/null 2>&1
-              curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-              echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
-              apt-get update -qq
-              apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 > /dev/null 2>&1
-
-              apt-get install -y libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libfontconfig1 libxcb1 libxkbcommon0 libpulse0 2>&1 | tail -5
-              # Install kubectl
-              curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
-              chmod +x /usr/local/bin/kubectl
-              cp -r /usr/bin/gh /tools/gh
-                            cp -r /usr/bin/ffmpeg /tools/ffmpeg
-              cp /usr/local/bin/kubectl /tools/kubectl
-                             2>/dev/null || true
-              cp -r /usr/lib/x86_64-linux-gnu/* /tools/chromium-libs/ 2>/dev/null || true
-              cp -r /usr/lib/* /tools/chromium-libs/ 2>/dev/null || true
-              cp -r /usr/lib/x86_64-linux-gnu/libav* /tools/chromium-libs/ 2>/dev/null || true
-              cp -r /usr/lib/x86_64-linux-gnu/libsw* /tools/chromium-libs/ 2>/dev/null || true
-                             2>/dev/null || true
-                                          sed -i 's|LIBDIR=/usr/lib/\$APPNAME|LIBDIR=/opt/tools/chromium-libs|g' /tools/chromium
-          securityContext:
-            runAsUser: 0
-            runAsGroup: 0
-          resources:
-            requests:
-              memory: 256Mi
-              cpu: 100m
-            limits:
-              memory: 512Mi
-              cpu: 500m
-          volumeMounts:
-            - name: tools
-              mountPath: /tools
         - name: init-config
           image: busybox:1.37
           imagePullPolicy: IfNotPresent
@@ -96,8 +55,8 @@ spec:
               readOnly: true
       containers:
         - name: gateway
-          image: ghcr.io/openclaw/openclaw:2026.4.12-slim
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/marcleibold/openclaw-tools:latest
+          imagePullPolicy: Always
           command:
             - node
             - /app/dist/index.js
@@ -111,9 +70,7 @@ spec:
             - name: HOME
               value: /home/node
             - name: PATH
-              value: /tools:/opt/tools:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
-            - name: LD_LIBRARY_PATH
-              value: /opt/tools/chromium-libs:/opt/tools/chromium-libs/x86_64-linux-gnu:/opt/tools/chromium-libs/pulseaudio:/opt/tools/chromium-libs/libavcodec59:/opt/tools/chromium-libs/libavfilter8:/opt/tools/chromium-libs/libavformat59:/opt/tools/chromium-libs/libavutil57:/opt/tools/chromium-libs/libpostproc56:/opt/tools/chromium-libs/libswresample4:/opt/tools/chromium-libs/libswscale6
+              value: /usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
             - name: OPENCLAW_CONFIG_DIR
               value: /home/node/.openclaw
             - name: NODE_ENV
@@ -168,9 +125,6 @@ spec:
               mountPath: /home/node/.openclaw
             - name: tmp-volume
               mountPath: /tmp
-            - name: tools
-              mountPath: /opt/tools
-              readOnly: true
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
@@ -181,8 +135,6 @@ spec:
               drop:
                 - ALL
       volumes:
-        - name: tools
-          emptyDir: {}
         - name: openclaw-home
           persistentVolumeClaim:
             claimName: openclaw-home-pvc
