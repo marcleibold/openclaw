@@ -72,6 +72,8 @@ spec:
           env:
             - name: HOME
               value: /data
+            - name: STCONFDIR
+              value: /data/syncthing
             - name: PUID
               value: "1000"
             - name: PGID
