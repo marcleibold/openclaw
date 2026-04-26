@@ -4,16 +4,7 @@ kind: ClusterRole
 metadata:
   name: openclaw-reader
 rules:
-- apiGroups: [""]
-  resources: ["*"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["apps"]
-  resources: ["*"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["argoproj.io"]
-  resources: ["*"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["cert-manager.io"]
+- apiGroups: ["*"]
   resources: ["*"]
   verbs: ["get", "list", "watch"]
 ---
