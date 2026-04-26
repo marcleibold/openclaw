@@ -79,7 +79,7 @@ spec:
             - name: STGUIADDRESS
               value: 0.0.0.0:8384
             - name: STHOMEDIR
-              value: /data/syncthing
+              value: /data/syncthing/config
           resources:
             requests:
               memory: 64Mi
