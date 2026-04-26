@@ -71,13 +71,15 @@ spec:
               protocol: UDP
           env:
             - name: HOME
-              value: /data
-            - name: STCONFDIR
               value: /data/syncthing
             - name: PUID
               value: "1000"
             - name: PGID
               value: "1000"
+            - name: STCONFDIR
+              value: /data/syncthing
+            - name: STDATADIR
+              value: /data/syncthing
             - name: WEBGUI_ADDRESS
               value: 0.0.0.0:8384
           resources:
