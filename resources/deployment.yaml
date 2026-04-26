@@ -78,6 +78,12 @@ spec:
               value: "1000"
             - name: STHOME
               value: /data/syncthing
+          command:
+            - /bin/sh
+            - -c
+            - |
+              mkdir -p /data/syncthing
+              exec /entrypoint.sh --home /data/syncthing
             - name: WEBGUI_ADDRESS
               value: 0.0.0.0:8384
           resources:
