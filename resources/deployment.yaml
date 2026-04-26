@@ -76,16 +76,10 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-            - name: STHOME
-              value: /data/syncthing
-          command:
-            - /bin/sh
-            - -c
-            - |
-              mkdir -p /data/syncthing
-              exec /entrypoint.sh --home /data/syncthing
-            - name: WEBGUI_ADDRESS
+            - name: STGUIADDRESS
               value: 0.0.0.0:8384
+            - name: STHOMEDIR
+              value: /data/syncthing
           resources:
             requests:
               memory: 64Mi
