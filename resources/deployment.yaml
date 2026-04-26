@@ -76,9 +76,7 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-            - name: STCONFDIR
-              value: /data/syncthing
-            - name: STDATADIR
+            - name: STHOME
               value: /data/syncthing
             - name: WEBGUI_ADDRESS
               value: 0.0.0.0:8384
