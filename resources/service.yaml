@@ -6,7 +6,7 @@ metadata:
   labels:
     app: openclaw
   annotations:
-    metallb.io/loadbalancerIP: 192.168.178.201
+    metallb.io/loadbalancerIP: 192.168.178.129
 spec:
   type: LoadBalancer
   selector:
