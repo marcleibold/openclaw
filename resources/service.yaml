@@ -5,8 +5,10 @@ metadata:
   namespace: openclaw
   labels:
     app: openclaw
+  annotations:
+    metallb.io/loadbalancerIP: 192.168.178.201
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: openclaw
   ports:
