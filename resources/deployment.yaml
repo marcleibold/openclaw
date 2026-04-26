@@ -56,6 +56,42 @@ spec:
               mountPath: /run/secrets/auth-profiles
               readOnly: true
       containers:
+        - name: syncthing
+          image: syncthing/syncthing:1.28.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: gui
+              containerPort: 8384
+              protocol: TCP
+            - name: tcp
+              containerPort: 22000
+              protocol: TCP
+            - name: udp
+              containerPort: 21027
+              protocol: UDP
+          env:
+            - name: HOME
+              value: /data
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: WEBGUI_ADDRESS
+              value: 0.0.0.0:8384
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 256Mi
+              cpu: 250m
+          volumeMounts:
+            - name: openclaw-home
+              mountPath: /data
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
         - name: gateway
           image: ghcr.io/marcleibold/openclaw-tools:latest
           imagePullPolicy: Always

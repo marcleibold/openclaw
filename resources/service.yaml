@@ -14,3 +14,7 @@ spec:
       port: 18789
       targetPort: 18789
       protocol: TCP
+    - name: syncthing
+      port: 8384
+      targetPort: 8384
+      protocol: TCP
