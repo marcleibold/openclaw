@@ -19,10 +19,11 @@ USER root
 
 # Install Python 3.12, uv, and other dependencies
 RUN apt-get update -qq && \
-    apt-get install -y -qq curl gnupg ca-certificates software-properties-common > /dev/null 2>&1 && \
+    apt-get install -y -qq curl gnupg ca-certificates > /dev/null 2>&1 && \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
-    add-apt-repository -y ppa:deadsnakes/ppa && \
+    echo "deb https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy main" > /etc/apt/sources.list.d/deadsnakes.list && \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F53A94C3E6504F38 && \
     apt-get update -qq && \
     apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 python3.12 python3.12-venv python3.12-distutils curl && \
     curl -fsSL https://astral.sh/uv/install.sh | sh && \
