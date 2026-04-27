@@ -34,6 +34,9 @@ RUN apt-get update -qq && \
 ENV PATH="/root/.local/bin:$PATH"
 ENV LAST30DAYS_PYTHON=python3.12
 
+# Install yt-dlp for YouTube support
+RUN curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && chmod +x /usr/local/bin/yt-dlp
+
 # Copy whisper-cli and any shared libraries from install directory
 COPY --from=builder /install/bin/whisper-cli /usr/local/bin/whisper-cli
 COPY --from=builder /install/lib/ /usr/local/lib/
