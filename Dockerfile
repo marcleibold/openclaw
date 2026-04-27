@@ -13,7 +13,7 @@ RUN git clone --depth 1 --branch v1.8.0 https://github.com/ggml-org/whisper.cpp.
     cmake --install build --prefix /install
 
 # Stage 2: Final image with openclaw base
-FROM ghcr.io/openclaw/openclaw:2026.4.12-slim
+FROM ghcr.io/openclaw/openclaw:2026.4.12
 
 USER root
 
