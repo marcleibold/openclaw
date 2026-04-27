@@ -32,7 +32,7 @@ data:
           }
         ]
       },
-      "cron": { "enabled": false },
+      "cron": { "enabled": true },
       "plugins": {
         "entries": {
           "minimax": { "enabled": true }
