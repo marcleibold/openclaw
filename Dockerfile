@@ -22,8 +22,7 @@ RUN apt-get update -qq && \
     apt-get install -y -qq curl gnupg ca-certificates > /dev/null 2>&1 && \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
-    curl -kfsSL https://keyserver.ubuntu.com/v1/key/0xF53A94C3E6504F38 | dd of=/usr/share/keyrings/deadsnakes.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deadsnakes.gpg] https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy main" > /etc/apt/sources.list.d/deadsnakes.list && \
+    add-apt-repository -y --no-update ppa:deadsnakes/ppa && \
     apt-get update -qq && \
     apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 python3.12 python3.12-venv python3.12-distutils curl && \
     curl -fsSL https://astral.sh/uv/install.sh | sh && \
