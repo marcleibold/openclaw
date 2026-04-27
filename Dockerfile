@@ -17,16 +17,22 @@ FROM ghcr.io/openclaw/openclaw:2026.4.12-slim
 
 USER root
 
+# Install Python 3.12, uv, and other dependencies
 RUN apt-get update -qq && \
     apt-get install -y -qq curl gnupg ca-certificates > /dev/null 2>&1 && \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update -qq && \
-    apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 > /dev/null 2>&1 && \
+    apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 python3.12 python3.12-venv python3.12-distutils curl && \
+    curl -fsSL https://astral.sh/uv/install.sh | sh && \
     curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl && \
     chmod +x /usr/local/bin/kubectl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ENV PATH="/root/.local/bin:$PATH"
+ENV LAST30DAYS_PYTHON=python3.12
 
 # Copy whisper-cli and any shared libraries from install directory
 COPY --from=builder /install/bin/whisper-cli /usr/local/bin/whisper-cli
@@ -37,5 +43,11 @@ RUN mkdir -p /usr/local/share/whisper && \
     curl -fsSL https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o /usr/local/share/whisper/ggml-base.bin && \
     chmod 644 /usr/local/share/whisper/ggml-base.bin && \
     ldconfig || true
+
+# Copy last30days skill
+COPY skills/last30days/ /home/node/.openclaw/workspace/skills/last30days/
+
+# Install Python dependencies for last30days
+RUN uv pip install --system --python python3.12 requests
 
 USER 1000:1000
