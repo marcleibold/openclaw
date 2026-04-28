@@ -17,18 +17,26 @@ FROM ghcr.io/openclaw/openclaw:2026.4.12
 
 USER root
 
-# Install Python 3.12, uv, and other dependencies
+# Build Python 3.12 from source (no PPA needed)
 RUN apt-get update -qq && \
-    apt-get install -y -qq curl gnupg ca-certificates > /dev/null 2>&1 && \
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
-    for i in 1 2 3 4 5; do curl -kfsSL https://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search=0xBA6932366A755776 | dd of=/usr/share/keyrings/deadsnakes.gpg && break || sleep 2; done && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deadsnakes.gpg] https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy main" > /etc/apt/sources.list.d/deadsnakes.list && \
-    for i in 1 2 3 4 5; do apt-get update -qq && break || sleep 3; done && \
-    apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 python3.12 python3.12-venv python3.12-distutils curl && \
-    curl -fsSL https://astral.sh/uv/install.sh | sh && \
-    curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl && \
-    chmod +x /usr/local/bin/kubectl && \
+    apt-get install -y -qq build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev > /dev/null 2>&1 && \
+    cd /tmp && \
+    wget https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tgz && \
+    tar -xf Python-3.12.0.tgz && \
+    cd Python-3.12.0 && \
+    ./configure --enable-optimizations --prefix=/usr/local --without-ensurepip && \
+    make -j$(nproc) && \
+    make altinstall && \
+    cd /tmp && rm -rf Python-3.12.0* && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install uv
+RUN curl -fsSL https://astral.sh/uv/install.sh | sh
+
+# Install other dependencies
+RUN apt-get update -qq && \
+    apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 curl kubectl > /dev/null 2>&1 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -52,6 +60,6 @@ RUN mkdir -p /usr/local/share/whisper && \
 COPY skills/last30days/ /home/node/.openclaw/workspace/skills/last30days/
 
 # Install Python dependencies for last30days
-RUN uv pip install --system --python python3.12 requests
+RUN /usr/local/bin/uv pip install --system --python python3.12 requests
 
 USER 1000:1000
