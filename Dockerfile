@@ -17,26 +17,18 @@ FROM ghcr.io/openclaw/openclaw:2026.4.12
 
 USER root
 
-# Build Python 3.12 from source (no PPA needed)
-RUN apt-get update -qq && \
-    apt-get install -y -qq build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev > /dev/null 2>&1 && \
+# Build Python 3.12 from source + install all deps in one RUN to avoid lock issues
+RUN apt-get update && \
+    apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 curl kubectl && \
     cd /tmp && \
-    wget https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tgz && \
+    wget -q https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tgz && \
     tar -xf Python-3.12.0.tgz && \
     cd Python-3.12.0 && \
     ./configure --enable-optimizations --prefix=/usr/local --without-ensurepip && \
     make -j$(nproc) && \
     make altinstall && \
     cd /tmp && rm -rf Python-3.12.0* && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Install uv
-RUN curl -fsSL https://astral.sh/uv/install.sh | sh
-
-# Install other dependencies
-RUN apt-get update -qq && \
-    apt-get install -y -qq gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 curl kubectl > /dev/null 2>&1 && \
+    curl -fsSL https://astral.sh/uv/install.sh | sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
