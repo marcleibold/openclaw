@@ -19,7 +19,7 @@ USER root
 
 # Build Python 3.12 from source + install all deps in one RUN to avoid lock issues
 RUN apt-get update && \
-    apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 curl kubectl && \
+    apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev gh ffmpeg libavdevice59 libavcodec59 libavfilter8 libavformat59 libavutil57 libpostproc56 libswresample4 libswscale6 curl && \
     cd /tmp && \
     wget -q https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tgz && \
     tar -xf Python-3.12.0.tgz && \
@@ -29,6 +29,8 @@ RUN apt-get update && \
     make altinstall && \
     cd /tmp && rm -rf Python-3.12.0* && \
     curl -fsSL https://astral.sh/uv/install.sh | sh && \
+    curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl && \
+    chmod +x /usr/local/bin/kubectl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
