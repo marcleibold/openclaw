@@ -54,6 +54,6 @@ RUN mkdir -p /usr/local/share/whisper && \
 COPY skills/last30days/ /home/node/.openclaw/workspace/skills/last30days/
 
 # Install Python dependencies for last30days
-RUN /usr/local/bin/uv pip install --system --python python3.12 requests
+RUN /root/.local/bin/uv pip install --system --python python3.12 requests
 
 USER 1000:1000
