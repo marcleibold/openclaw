@@ -28,13 +28,14 @@ RUN apt-get update && \
     make -j$(nproc) && \
     make altinstall && \
     cd /tmp && rm -rf Python-3.12.0* && \
-    curl -fsSL https://astral.sh/uv/install.sh | sh && \
+    UV_INSTALL_DIR=/usr/local curl -fsSL https://astral.sh/uv/install.sh | sh && \
+    chmod +x /usr/local/bin/uv && \
     curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl && \
     chmod +x /usr/local/bin/kubectl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ENV PATH="/root/.local/bin:$PATH"
+ENV PATH="/usr/local/bin:$PATH"
 ENV LAST30DAYS_PYTHON=python3.12
 
 # Install yt-dlp for YouTube support
@@ -54,6 +55,6 @@ RUN mkdir -p /usr/local/share/whisper && \
 COPY skills/last30days/ /home/node/.openclaw/workspace/skills/last30days/
 
 # Install Python dependencies for last30days
-RUN /root/.local/bin/uv pip install --system --python python3.12 requests
+RUN /usr/local/bin/uv pip install --system --python python3.12 requests
 
 USER 1000:1000
