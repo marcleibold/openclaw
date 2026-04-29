@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        restart-time: "2026-04-25T17:10:06.902Z"
+        restart-time: "2026-04-29T17:35:00.000Z"
       labels:
         app: openclaw
     spec:
