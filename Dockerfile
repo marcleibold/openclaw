@@ -28,8 +28,8 @@ RUN apt-get update && \
     make -j$(nproc) && \
     make altinstall && \
     cd /tmp && rm -rf Python-3.12.0* && \
-    curl -fsSL https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz | tar xz && \
-    mv uv /usr/local/bin/uv && \
+    curl -fsSL https://astral.sh/uv/0.11.8/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv && \
     chmod +x /usr/local/bin/uv && \
     curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl && \
     chmod +x /usr/local/bin/kubectl && \
