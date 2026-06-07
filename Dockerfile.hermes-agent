@@ -7,5 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     && rm -rf /var/lib/apt/lists/* \
-    && /usr/bin/python3 -m pip install --no-cache-dir --break-system-packages 'mautrix[encryption]' \
-    && /usr/bin/python3 -m pip install --no-cache-dir --break-system-packages 'hermes-agent[matrix]'
+    && /usr/bin/python3 -m venv /opt/matrix-venv \
+    && /opt/matrix-venv/bin/pip install --no-cache-dir 'mautrix[encryption]' \
+    && /opt/matrix-venv/bin/pip install --no-cache-dir 'hermes-agent[matrix]'
+
+ENV PYTHONPATH=/opt/matrix-venv/lib/python3.13/site-packages:$PYTHONPATH
