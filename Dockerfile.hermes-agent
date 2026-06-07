@@ -1,0 +1,11 @@
+FROM nousresearch/hermes-agent:main
+
+# Install mautrix (Matrix protocol SDK) and libolm for E2EE
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libolm-dev \
+    python3-pip \
+    build-essential \
+    cmake \
+    && rm -rf /var/lib/apt/lists/* \
+    && /usr/bin/python3 -m pip install --no-cache-dir --break-system-packages 'mautrix[encryption]' \
+    && /usr/bin/python3 -m pip install --no-cache-dir --break-system-packages 'hermes-agent[matrix]'
