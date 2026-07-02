@@ -6,10 +6,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     build-essential \
     cmake \
+    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && /usr/bin/python3 -m venv /opt/matrix-venv \
     && /opt/matrix-venv/bin/pip install --no-cache-dir 'mautrix[encryption]' \
-    && /opt/matrix-venv/bin/pip install --no-cache-dir 'hermes-agent[matrix]'
+    && /opt/matrix-venv/bin/pip install --no-cache-dir 'hermes-agent[matrix]' \
+    # kubectl: pinned to a specific version for reproducibility. The k8s
+    # plugin shells out to this binary using the projected SA token.
+    && KUBECTL_VERSION="$(curl -fsSL https://dl.k8s.io/release/stable.txt)" \
+    && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+    && chmod 0755 /usr/local/bin/kubectl
 
 ENV PYTHONPATH=/opt/matrix-venv/lib/python3.13/site-packages:$PYTHONPATH
 

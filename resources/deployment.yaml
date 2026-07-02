@@ -31,6 +31,7 @@ spec:
         # image by Dockerfile.hermes-agent). Both steps are idempotent and fast on PVC.
         - name: render-config
           image: ghcr.io/marcleibold/hermes-agent:matrix
+          imagePullPolicy: Always
           command:
             - /bin/sh
             - -c
