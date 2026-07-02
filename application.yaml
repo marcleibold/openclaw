@@ -1,20 +1,26 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: openclaw
+  name: ai-agent
   namespace: argo-cd
 spec:
   project: spof-cluster
-  sources:
-    - repoURL: "https://github.com/marcleibold/openclaw.git"
-      targetRevision: HEAD
-      path: resources
+  source:
+    repoURL: "https://github.com/marcleibold/openclaw.git"
+    targetRevision: HEAD
+    path: resources
   destination:
     server: "https://kubernetes.default.svc"
-    namespace: openclaw
+    namespace: ai-agent
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
