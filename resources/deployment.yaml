@@ -69,6 +69,35 @@ spec:
                   t = t.replace("${" + k + "}", v)
               p.write_text(t)
               '
+              # Build a kubeconfig from the projected SA token so the k8s
+              # plugin (and `kubectl` if invoked) can talk to the API server
+              # without relying on the slightly-broken in-cluster env-var
+              # auto-discovery (KUBERNETES_PORT is set to a URL, not a number,
+              # by k3s service env injection).
+              mkdir -p /opt/data/.kube
+              KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              KUBE_CA=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              KUBE_NS=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+              cat > /opt/data/.kube/config <<EOF
+              apiVersion: v1
+              kind: Config
+              clusters:
+              - name: in-cluster
+                cluster:
+                  server: https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}
+                  certificate-authority: ${KUBE_CA}
+              contexts:
+              - name: wren
+                context:
+                  cluster: in-cluster
+                  namespace: ${KUBE_NS}
+                  user: wren
+              current-context: wren
+              users:
+              - name: wren
+                user:
+                  token: ${KUBE_TOKEN}
+              EOF
               chown -R 10000:10000 /opt/data
           env:
             - name: MATRIX_ACCESS_TOKEN
@@ -95,6 +124,8 @@ spec:
               value: /opt/data
             - name: NODE_ENV
               value: production
+            - name: KUBECONFIG
+              value: /opt/data/.kube/config
             - name: MATRIX_HOMESERVER
               value: https://matrix.leibold.tech
             - name: MATRIX_ACCESS_TOKEN
