@@ -1,144 +1,97 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: openclaw
-  namespace: openclaw
+  name: ai-agent
+  namespace: ai-agent
   labels:
-    app: openclaw
+    app: ai-agent
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: openclaw
+      app: ai-agent
   strategy:
     type: Recreate
   template:
     metadata:
-      annotations:
-        restart-time: "2026-04-29T17:35:00.000Z"
       labels:
-        app: openclaw
+        app: ai-agent
     spec:
-      automountServiceAccountToken: true
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+        runAsUser: 0
       initContainers:
-        - name: init-config
-          image: busybox:1.37
-          imagePullPolicy: IfNotPresent
+        # Render the ConfigMap template (with ${MATRIX_ACCESS_TOKEN} etc.) into the
+        # persistent hermes home, then chown everything to uid 10000 (the hermes user).
+        # Both steps are idempotent and fast on PVC.
+        - name: render-config
+          image: ghcr.io/marcleibold/hermes-agent:matrix
           command:
-            - sh
+            - /bin/sh
             - -c
             - |
-              cp /config/openclaw.json /home/node/.openclaw/openclaw.json
-              mkdir -p /home/node/.openclaw/workspace
-              cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
-              mkdir -p /home/node/.openclaw/agents/default/agent
-              cp /run/secrets/auth-profiles.json /home/node/.openclaw/agents/default/agent/auth-profiles.json 2>/dev/null || true
-          securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
-          resources:
-            requests:
-              memory: 32Mi
-              cpu: 50m
-            limits:
-              memory: 64Mi
-              cpu: 100m
-          volumeMounts:
-            - name: openclaw-home
-              mountPath: /home/node/.openclaw
-            - name: config
-              mountPath: /config
-            - name: auth-profiles-secret
-              mountPath: /run/secrets/auth-profiles
-              readOnly: true
-      containers:
-        - name: syncthing
-          image: syncthing/syncthing:1.28.0
-          imagePullPolicy: IfNotPresent
-          ports:
-            - name: gui
-              containerPort: 8384
-              protocol: TCP
-            - name: tcp
-              containerPort: 22000
-              protocol: TCP
-            - name: udp
-              containerPort: 21027
-              protocol: UDP
+              set -eu
+              mkdir -p /opt/data/platforms/matrix/store /opt/data/workspace
+              cp /config-template/config.yaml /opt/data/config.yaml
+              cp /config-template/AGENTS.md /opt/data/workspace/AGENTS.md
+              python3 -c '
+              import os, re, pathlib
+              p = pathlib.Path("/opt/data/config.yaml")
+              t = p.read_text()
+              for k, v in os.environ.items():
+                  t = t.replace("${" + k + "}", v)
+              p.write_text(t)
+              '
+              chown -R 10000:10000 /opt/data
           env:
-            - name: HOME
-              value: /data/syncthing
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "1000"
-            - name: STGUIADDRESS
-              value: 0.0.0.0:8384
-            - name: STHOMEDIR
-              value: /data/syncthing/config
-          resources:
-            requests:
-              memory: 64Mi
-              cpu: 50m
-            limits:
-              memory: 256Mi
-              cpu: 250m
-          volumeMounts:
-            - name: openclaw-home
-              mountPath: /data
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
-        - name: gateway
-          image: ghcr.io/marcleibold/openclaw-tools:latest
-          imagePullPolicy: Always
-          command:
-            - node
-            - /app/dist/index.js
-            - gateway
-            - run
-          ports:
-            - name: gateway
-              containerPort: 18789
-              protocol: TCP
-          env:
-            - name: HOME
-              value: /home/node
-            - name: PATH
-              value: /usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
-            - name: OPENCLAW_CONFIG_DIR
-              value: /home/node/.openclaw
-            - name: NODE_ENV
-              value: production
-            - name: OPENCLAW_GATEWAY_TOKEN
+            - name: MATRIX_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: openclaw-secrets
-                  key: OPENCLAW_GATEWAY_TOKEN
-                  optional: true
+                  name: ai-agent-secrets
+                  key: MATRIX_ACCESS_TOKEN
+          volumeMounts:
+            - name: hermes-home
+              mountPath: /opt/data
+            - name: config-template
+              mountPath: /config-template
+              readOnly: true
+      containers:
+        - name: gateway
+          image: ghcr.io/marcleibold/hermes-agent:matrix
+          imagePullPolicy: Always
+          command:
+            - hermes
+            - gateway
+            - run
+          env:
+            - name: HOME
+              value: /opt/data
+            - name: NODE_ENV
+              value: production
+            - name: MATRIX_HOMESERVER
+              value: https://matrix.leibold.tech
+            - name: MATRIX_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ai-agent-secrets
+                  key: MATRIX_ACCESS_TOKEN
+            - name: MATRIX_ENCRYPTION
+              value: "true"
             - name: MINIMAX_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: openclaw-secrets
+                  name: ai-agent-secrets
                   key: MINIMAX_API_KEY
-                  optional: true
-            - name: ANTHROPIC_API_KEY
+            - name: HERMES_GATEWAY_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: openclaw-secrets
-                  key: ANTHROPIC_API_KEY
-                  optional: true
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: openclaw-secrets
-                  key: OPENAI_API_KEY
-                  optional: true
+                  name: ai-agent-secrets
+                  key: HERMES_GATEWAY_TOKEN
+            - name: GATEWAY_ALLOW_ALL_USERS
+              value: "true"
           resources:
             requests:
               memory: 512Mi
@@ -147,45 +100,34 @@ spec:
               memory: 2Gi
               cpu: "1"
           livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 18789
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - kill -0 1
             initialDelaySeconds: 60
             periodSeconds: 30
-            timeoutSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 18789
-            initialDelaySeconds: 15
-            periodSeconds: 10
             timeoutSeconds: 5
+            failureThreshold: 3
           volumeMounts:
-            - name: openclaw-home
-              mountPath: /home/node/.openclaw
+            - name: hermes-home
+              mountPath: /opt/data
             - name: tmp-volume
               mountPath: /tmp
           securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
             capabilities:
               drop:
-                - ALL
+                - CAP_SYS_ADMIN
+                - CAP_NET_ADMIN
+                - CAP_SYS_RAWIO
+                - CAP_SYS_BOOT
       volumes:
-        - name: openclaw-home
+        - name: hermes-home
           persistentVolumeClaim:
-            claimName: openclaw-home-pvc
-        - name: config
+            claimName: ai-agent-home-pvc
+        - name: config-template
           configMap:
-            name: openclaw-config
-        - name: auth-profiles-secret
-          secret:
-            secretName: openclaw-secrets
-            items:
-              - key: AUTH_PROFILES_JSON
-                path: auth-profiles.json
+            name: ai-agent
         - name: tmp-volume
           emptyDir: {}

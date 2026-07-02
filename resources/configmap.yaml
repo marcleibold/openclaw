@@ -1,76 +1,79 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: openclaw-config
-  namespace: openclaw
+  name: ai-agent
+  namespace: ai-agent
   labels:
-    app: openclaw
+    app: ai-agent
 data:
-  openclaw.json: |
-    {
-      "gateway": {
-        "mode": "local",
-        "bind": "lan",
-        "port": 18789,
-        "auth": {
-          "mode": "token"
-        },
-        "controlUi": {
-          "enabled": true
-        }
-      },
-      "agents": {
-        "defaults": {
-          "model": { "primary": "minimax/MiniMax-M2.7" },
-          "workspace": "~/.openclaw/workspace"
-        },
-        "list": [
-          {
-            "id": "default",
-            "name": "OpenClaw Assistant",
-            "workspace": "~/.openclaw/workspace"
-          }
-        ]
-      },
-      "cron": { "enabled": true },
-      "plugins": {
-        "entries": {
-          "minimax": { "enabled": true }
-        }
-      },
-      "channels": {
-        "matrix": {
-          "enabled": true,
-          "accounts": {
-            "openclaw": {
-              "name": "OpenClaw Bot",
-              "enabled": true,
-              "homeserver": "https://matrix.leibold.tech",
-              "accessToken": "syt_b3BlbmNsYXc_szqyslsKxiqveDLhWXfL_1nkOlO",
-              "deviceName": "OPENCLAW01"
-            }
-          }
-        }
-      }
-    }
-  AGENTS.md: |
-    # OpenClaw Assistant
+  config.yaml: |
+    model:
+      default: minimax/MiniMax-M2.7
+      provider: minimax
 
-    You are a helpful AI assistant running in Kubernetes. Your default model is MiniMax-M2.7.
+    agent:
+      name: Wren
+
+    gateway:
+      allowAllUsers: true
+
+    platforms:
+      matrix:
+        enabled: true
+        homeserver: https://matrix.leibold.tech
+        accessToken: ${MATRIX_ACCESS_TOKEN}
+        encryption: true
+        user_id: "@wren:matrix.leibold.tech"
+        device_id: AXJVAHLNSS
+        dm:
+          policy: open
+        groupPolicy: open
+        sync_initial_state: true
+
+    memory:
+      memory_enabled: true
+      user_profile_enabled: true
+
+    tools:
+      enabled:
+        - web
+        - search
+        - terminal
+        - file
+        - code_execution
+        - vision
+        - delegation
+        - cronjob
+        - session_search
+        - memory
+        - skills
+
+  AGENTS.md: |
+    # Wren
+
+    You are Wren, a personal AI assistant running in a Kubernetes cluster. Your host is Marc in Berlin (GMT+2).
+
+    ## Your Strengths
+
+    You excel at:
+    - **Software development** — coding, debugging, code review, architecture
+    - **K3s administration** — cluster management, deployments, troubleshooting
+    - **Household** — recipe extraction from Instagram Reels and websites, smart home control
+    - **Fitness** — morning motivation, integration with Liftosaur and Fitbit for tracking runs and activity
 
     ## Setup
 
-    This is a personal AI assistant deployed on a self-hosted k3s cluster. It connects to Matrix
-    for chat and uses MiniMax M2.7 as the primary reasoning model.
+    You are deployed on a self-hosted k3s cluster. You connect to Matrix for chat and use MiniMax M2.7 as the primary reasoning model. You have access to web search, file management, terminal, vision, delegation, cron jobs, and persistent memory across sessions.
 
-    ## Matrix channel
+    ## Matrix Channel
 
-    Configure the Matrix channel in `channels.matrix` with your homeserver, userId, and accessToken.
-    E2EE is enabled by default. On first login, complete device verification in your Element client.
+    You communicate via Matrix. Your bot account is @wren:matrix.leibold.tech. E2EE is enabled by default.
 
     ## Commands
 
-    - `/help` - Show available commands
-    - `/status` - Show agent status
-    - `/model` - Show current model
-    - `/exit` - End session
+    - `/help` — Show available commands
+    - `/status` — Show agent status
+    - `/model` — Show current model
+    - `/exit` — End session
+    - `/skill <name>` — Load a specific skill
+    - `/cron` — Manage scheduled jobs
