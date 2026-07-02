@@ -12,3 +12,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && /opt/matrix-venv/bin/pip install --no-cache-dir 'hermes-agent[matrix]'
 
 ENV PYTHONPATH=/opt/matrix-venv/lib/python3.13/site-packages:$PYTHONPATH
+
+# --------------------------------------------------------------------------
+# Wren custom plugins and skills.
+#
+# These get COPY'd to /opt/hermes/wren/ at build time. The init container in
+# resources/deployment.yaml copies them into /opt/data/plugins/<name>/ and
+# /opt/data/skills/<name>/ on pod start, because /opt/data is the PVC mount
+# point and would otherwise hide the baked-in copies.
+# --------------------------------------------------------------------------
+COPY resources/plugins/k8s/  /opt/hermes/wren/plugins/k8s/
+COPY skills/k8s/            /opt/hermes/wren/skills/k8s/

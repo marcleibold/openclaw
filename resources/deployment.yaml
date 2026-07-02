@@ -17,7 +17,8 @@ spec:
       labels:
         app: ai-agent
     spec:
-      automountServiceAccountToken: false
+      serviceAccountName: wren
+      automountServiceAccountToken: true
       securityContext:
         fsGroup: 1000
         seccompProfile:
@@ -26,7 +27,8 @@ spec:
       initContainers:
         # Render the ConfigMap template (with ${MATRIX_ACCESS_TOKEN} etc.) into the
         # persistent hermes home, then chown everything to uid 10000 (the hermes user).
-        # Both steps are idempotent and fast on PVC.
+        # Also seeds custom plugins and skills from /opt/hermes/wren/ (baked into the
+        # image by Dockerfile.hermes-agent). Both steps are idempotent and fast on PVC.
         - name: render-config
           image: ghcr.io/marcleibold/hermes-agent:matrix
           command:
@@ -37,8 +39,29 @@ spec:
               mkdir -p /opt/data/platforms/matrix/store /opt/data/workspace
               cp /config-template/config.yaml /opt/data/config.yaml
               cp /config-template/AGENTS.md /opt/data/workspace/AGENTS.md
+              # Harness files (only overwrite if not already present locally,
+              # so user edits inside the pod survive pod restarts)
+              for f in IDENTITY.md USER.md MEMORY.md TOOLS.md; do
+                if [ ! -f "/opt/data/$f" ] || [ -z "$(cat /opt/data/$f 2>/dev/null)" ]; then
+                  cp "/config-template/$f" "/opt/data/$f"
+                fi
+              done
+              # Custom plugins and skills (always seed; user edits not expected
+              # here, and we want the version-controlled copy to be canonical).
+              for d in /opt/hermes/wren/plugins/*/; do
+                [ -d "$d" ] || continue
+                name=$(basename "$d")
+                mkdir -p "/opt/data/plugins/$name"
+                cp -r "$d". "/opt/data/plugins/$name/"
+              done
+              for d in /opt/hermes/wren/skills/*/; do
+                [ -d "$d" ] || continue
+                name=$(basename "$d")
+                mkdir -p "/opt/data/skills/$name"
+                cp -r "$d". "/opt/data/skills/$name/"
+              done
               python3 -c '
-              import os, re, pathlib
+              import os, pathlib
               p = pathlib.Path("/opt/data/config.yaml")
               t = p.read_text()
               for k, v in os.environ.items():

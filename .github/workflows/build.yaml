@@ -8,6 +8,8 @@ on:
       - Dockerfile
       - Dockerfile.hermes-agent
       - .github/workflows/build.yaml
+      - resources/plugins/**
+      - skills/**
   workflow_dispatch:
 
 jobs:

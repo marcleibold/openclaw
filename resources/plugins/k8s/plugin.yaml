@@ -1,0 +1,4 @@
+name: k8s
+version: 0.1.0
+description: "Read and manage Kubernetes resources via the in-cluster ServiceAccount. Uses the RBAC granted to the pod's SA — verbs the SA cannot do return a permission error from the API."
+author: "marcleibold"

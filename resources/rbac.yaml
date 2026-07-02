@@ -1,52 +1,101 @@
 ---
+# ServiceAccount for the Wren (ai-agent) pod.
+# Distinct from `default` so the binding is explicit and auditable.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wren
+  namespace: ai-agent
+automountServiceAccountToken: false  # enabled per-pod via deployment.yaml
+---
+# Cluster-wide read-only access. Enough for "what's broken?" investigations
+# across every namespace without granting write power everywhere.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: openclaw-reader
+  name: wren-readonly
 rules:
-- apiGroups: ["*"]
-  resources: ["*"]
+- apiGroups: [""]
+  resources:
+    - pods
+    - pods/log
+    - services
+    - configmaps
+    - secrets
+    - persistentvolumeclaims
+    - events
+    - namespaces
+    - nodes
+    - serviceaccounts
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources:
+    - deployments
+    - statefulsets
+    - daemonsets
+    - replicasets
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources:
+    - jobs
+    - cronjobs
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources:
+    - ingresses
   verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: openclaw-reader-binding
+  name: wren-readonly
 subjects:
 - kind: ServiceAccount
-  name: default
-  namespace: openclaw
+  name: wren
+  namespace: ai-agent
 roleRef:
   kind: ClusterRole
-  name: openclaw-reader
+  name: wren-readonly
   apiGroup: rbac.authorization.k8s.io
 ---
+# Read+write in its own namespace. Wren can manage its own deployment,
+# configmap, secrets, etc. but cannot mutate other namespaces' workloads.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: openclaw-pod-manager
-  namespace: openclaw
+  name: wren-self-manage
+  namespace: ai-agent
 rules:
 - apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch", "delete"]
-- apiGroups: [""]
-  resources: ["pods/log"]
-  verbs: ["get"]
-- apiGroups: [""]
-  resources: ["pods/exec"]
-  verbs: ["create"]
+  resources:
+    - pods
+    - configmaps
+    - secrets
+    - services
+    - persistentvolumeclaims
+    - events
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources:
+    - deployments
+    - statefulsets
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["batch"]
+  resources:
+    - jobs
+    - cronjobs
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: openclaw-pod-manager-binding
-  namespace: openclaw
+  name: wren-self-manage
+  namespace: ai-agent
 subjects:
 - kind: ServiceAccount
-  name: default
-  namespace: openclaw
+  name: wren
+  namespace: ai-agent
 roleRef:
   kind: Role
-  name: openclaw-pod-manager
+  name: wren-self-manage
   apiGroup: rbac.authorization.k8s.io
